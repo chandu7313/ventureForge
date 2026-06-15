@@ -7,21 +7,68 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  name      String?
-  projects  Project[]
-  createdAt DateTime  @default(now())
+enum Plan {
+  FREE
+  PRO
+  PREMIUM
 }
 
-model Project {
+model User {
+  id             String        @id @default(cuid())
+  clerkUserId    String        @unique // Clerk's user ID
+  email          String        @unique
+  name           String?
+  plan           Plan          @default(FREE)
+  reportsCount   Int           @default(0) // Lifetime reports generated
+  subscriptionId String?       // Razorpay subscription ID
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  ideas          Idea[]
+  reports        Report[]
+}
+
+model Idea {
   id          String   @id @default(cuid())
   name        String
   description String
+  targetAudience String?
+  monetization  String?
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  insights    Json?
-  status      String   @default("pending")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reports     Report[]
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  ideaId      String
+  idea        Idea     @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  marketScore Int?
+  insights    Json?
+  competitors Json?
+  risks       Json?
+  timeline    Json?
+  slides      Json?
+  
+  status      String   @default("pending") // pending, processing, completed, failed
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Subscription {
+  id            String   @id @default(cuid())
+  razorpayId    String   @unique
+  plan          Plan
+  userId        String   @unique
+  status        String   @default("active")
+  currentPeriodEnd DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
