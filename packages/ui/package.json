@@ -1,0 +1,19 @@
+{
+  "name": "@startupsaarthi/ui",
+  "version": "1.0.0",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "framer-motion": "^11.2.10",
+    "lucide-react": "^0.378.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.3.0",
+    "recharts": "^2.12.7"
+  },
+  "devDependencies": {
+    "@startupsaarthi/config": "workspace:*",
+    "typescript": "5.3.3"
+  }
+}
