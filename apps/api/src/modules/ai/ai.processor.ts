@@ -1,56 +1,74 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
-import { AiService } from './ai.service';
-import { ReportGateway } from '../reports/report.gateway';
+import { AiOrchestrator } from './orchestrator';
 import { PrismaService } from '../../prisma/prisma.service';
+
+interface GenerateReportJob {
+  reportId: string;
+  ideaId: string;
+  ideaDescription: string;
+  industry: string;
+  geography: string;
+  stage: string;
+  teamSize: number;
+  budget: string;
+}
 
 @Processor('ai-report-generation')
 export class AiProcessor extends WorkerHost {
   private readonly logger = new Logger(AiProcessor.name);
 
   constructor(
-    private readonly aiService: AiService,
-    private readonly gateway: ReportGateway,
+    private readonly orchestrator: AiOrchestrator,
     private readonly prisma: PrismaService,
   ) {
     super();
   }
 
-  async process(job: Job<{ reportId: string; ideaId: string }>) {
-    const { reportId, ideaId } = job.data;
-    
-    await this.prisma.report.update({ where: { id: reportId }, data: { status: 'processing' } });
+  async process(job: Job<GenerateReportJob>) {
+    const { reportId, ideaId, ideaDescription, industry, geography, stage, teamSize, budget } = job.data;
 
-    const idea = await this.prisma.idea.findUnique({ where: { id: ideaId } });
-    const ideaText = `${idea.name}: ${idea.description}`;
+    this.logger.log(`[AiProcessor] Processing job for reportId: ${reportId}`);
 
-    // Stage 1: Market Analysis
-    this.gateway.emitProgress(reportId, 'market_analysis', 25, { message: 'Analyzing market size and competitors...' });
-    const marketData = await this.aiService.runMarketAnalysis(ideaText);
-
-    // Stage 2: Risk Assessment
-    this.gateway.emitProgress(reportId, 'risk_assessment', 50, { message: 'Identifying potential risks...' });
-    const risks = await this.aiService.runRiskAssessment(ideaText, marketData);
-
-    // Stage 3: Tech Lead & Timeline
-    this.gateway.emitProgress(reportId, 'tech_lead', 75, { message: 'Drafting MVP timeline and slides...' });
-    const techData = await this.aiService.runTechLead(ideaText);
-
-    // Finalize
     await this.prisma.report.update({
       where: { id: reportId },
-      data: {
-        status: 'completed',
-        marketScore: marketData.marketScore,
-        insights: marketData.insights,
-        competitors: marketData.competitors,
-        risks,
-        timeline: techData.timeline,
-        slides: techData.slides,
-      },
+      data: { status: 'processing' },
     });
 
-    this.gateway.emitProgress(reportId, 'completed', 100, { message: 'Report generation complete!' });
+    try {
+      const result = await this.orchestrator.run({
+        reportId,
+        ideaId,
+        ideaDescription,
+        industry,
+        geography,
+        stage,
+        teamSize,
+        budget,
+      });
+
+      await this.prisma.report.update({
+        where: { id: reportId },
+        data: {
+          status: 'completed',
+          marketScore: result.vc.investorScore,
+          insights: result.market as any,
+          competitors: result.competitors as any,
+          risks: result.product.risks as any,
+          timeline: result.product.mvp as any,
+          slides: result.vc.pitch as any,
+        },
+      });
+
+      this.logger.log(`[AiProcessor] Report ${reportId} completed successfully.`);
+    } catch (err) {
+      this.logger.error(`[AiProcessor] Report ${reportId} FAILED: ${(err as Error).message}`);
+      await this.prisma.report.update({
+        where: { id: reportId },
+        data: { status: 'failed' },
+      });
+      throw err; // Re-throw so BullMQ marks job as failed
+    }
   }
 }

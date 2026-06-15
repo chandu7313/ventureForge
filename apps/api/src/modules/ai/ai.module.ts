@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { AiService } from './ai.service';
+import { AiOrchestrator } from './orchestrator';
 import { AiProcessor } from './ai.processor';
+import { MarketAgent } from './agents/market.agent';
+import { CompetitorAgent } from './agents/competitor.agent';
+import { ProductAgent } from './agents/product.agent';
+import { VcAgent } from './agents/vc.agent';
 import { ReportGateway } from '../reports/report.gateway';
 
 @Module({
@@ -10,6 +14,15 @@ import { ReportGateway } from '../reports/report.gateway';
       name: 'ai-report-generation',
     }),
   ],
-  providers: [AiService, AiProcessor, ReportGateway],
+  providers: [
+    AiOrchestrator,
+    AiProcessor,
+    MarketAgent,
+    CompetitorAgent,
+    ProductAgent,
+    VcAgent,
+    ReportGateway,
+  ],
+  exports: [AiOrchestrator],
 })
 export class AiModule {}
