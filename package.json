@@ -1,0 +1,19 @@
+{
+  "name": "startupsaarthi",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "db:push": "pnpm --filter @startupsaarthi/db db:push"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.0",
+    "typescript": "5.3.3"
+  }
+}

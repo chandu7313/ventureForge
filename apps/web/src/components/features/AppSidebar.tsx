@@ -1,0 +1,80 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { UserButton } from "@clerk/nextjs";
+import { LayoutDashboard, FileText, PlusCircle, Settings, ChevronLeft, ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { cn } from "@startupsaarthi/ui";
+
+const navItems = [
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "New Validation", href: "/validate/new", icon: PlusCircle },
+  { name: "My Reports", href: "/reports", icon: FileText },
+  { name: "Settings", href: "/settings", icon: Settings },
+];
+
+export const AppSidebar = () => {
+  const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
+
+  return (
+    <motion.aside
+      animate={{ width: isCollapsed ? 80 : 260 }}
+      className="relative flex h-screen flex-col border-r bg-card dark:bg-slate-900 z-10"
+    >
+      <div className="flex h-16 items-center justify-between px-4 border-b">
+        {!isCollapsed && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 font-bold text-xl text-indigo-600 dark:text-indigo-400">
+            StartupSaarthi
+          </motion.div>
+        )}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-muted-foreground transition-colors ml-auto"
+        >
+          {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </button>
+      </div>
+
+      <nav className="flex-1 space-y-1 p-3">
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300"
+                  : "text-muted-foreground hover:bg-slate-100 hover:text-foreground dark:hover:bg-slate-800"
+              )}
+            >
+              <item.icon className="h-5 w-5 shrink-0" />
+              {!isCollapsed && <span>{item.name}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="border-t p-4 flex flex-col gap-4">
+        {!isCollapsed && (
+          <div className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 p-3 text-white text-xs shadow-md">
+            <p className="font-semibold mb-1">Pro Plan</p>
+            <p className="opacity-80">3 validations remaining</p>
+          </div>
+        )}
+        <div className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
+          <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+          {!isCollapsed && (
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">My Account</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.aside>
+  );
+};

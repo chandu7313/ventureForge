@@ -1,0 +1,10 @@
+{
+  "extends": "@startupsaarthi/config/tsconfig.node.json",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}
