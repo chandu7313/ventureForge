@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { AiOrchestrator } from './orchestrator';
+import { AiOrchestrator } from './ai.orchestrator';
 import { AiProcessor } from './ai.processor';
 import { MarketAgent } from './agents/market.agent';
 import { CompetitorAgent } from './agents/competitor.agent';

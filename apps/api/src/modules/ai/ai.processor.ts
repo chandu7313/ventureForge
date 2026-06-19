@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
-import { AiOrchestrator } from './orchestrator';
+import { AiOrchestrator } from './ai.orchestrator';
 import { PrismaService } from '../../prisma/prisma.service';
 
 interface GenerateReportJob {
@@ -33,13 +33,13 @@ export class AiProcessor extends WorkerHost {
 
     await this.prisma.report.update({
       where: { id: reportId },
-      data: { status: 'processing' },
+      data: { status: 'PROCESSING' },
     });
 
     try {
       const result = await this.orchestrator.run({
         reportId,
-        ideaId,
+        // removed ideaId
         ideaDescription,
         industry,
         geography,
@@ -51,13 +51,13 @@ export class AiProcessor extends WorkerHost {
       await this.prisma.report.update({
         where: { id: reportId },
         data: {
-          status: 'completed',
+          status: 'DONE',
           marketScore: result.vc.investorScore,
-          insights: result.market as any,
-          competitors: result.competitors as any,
-          risks: result.product.risks as any,
-          timeline: result.product.mvp as any,
-          slides: result.vc.pitch as any,
+          marketData: result.market as any,
+          competitorData: result.competitors as any,
+          riskData: result.product.risks as any,
+          mvpData: result.product.mvp as any,
+          pitchData: result.vc.pitch as any,
         },
       });
 
@@ -66,7 +66,7 @@ export class AiProcessor extends WorkerHost {
       this.logger.error(`[AiProcessor] Report ${reportId} FAILED: ${(err as Error).message}`);
       await this.prisma.report.update({
         where: { id: reportId },
-        data: { status: 'failed' },
+        data: { status: 'FAILED' },
       });
       throw err; // Re-throw so BullMQ marks job as failed
     }

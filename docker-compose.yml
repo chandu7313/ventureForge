@@ -82,26 +82,7 @@ services:
       retries: 3
       start_period: 20s
 
-  # ─── Bull Workers ────────────────────────────────────────
-  workers:
-    build:
-      context: .
-      dockerfile: apps/workers/Dockerfile
-    container_name: ss_workers
-    restart: unless-stopped
-    env_file: apps/api/.env
-    environment:
-      NODE_ENV: development
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./apps/workers/src:/app/apps/workers/src
-    networks: [internal]
+
 
   # ─── Next.js Web ─────────────────────────────────────────
   web:

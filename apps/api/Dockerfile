@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # Stage 1: Install ALL dependencies
 # ─────────────────────────────────────────────────────────────
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -12,6 +12,7 @@ COPY packages/db/package.json    ./packages/db/
 COPY packages/types/package.json ./packages/types/
 COPY packages/config/package.json ./packages/config/
 COPY apps/api/package.json       ./apps/api/
+COPY apps/web/package.json       ./apps/web/
 
 RUN pnpm install --frozen-lockfile
 
@@ -34,7 +35,7 @@ RUN pnpm --filter @startupsaarthi/api run build
 # ─────────────────────────────────────────────────────────────
 # Stage 3: Production runner (production deps only)
 # ─────────────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 RUN apk add --no-cache curl libc6-compat
 
 WORKDIR /app
@@ -52,13 +53,15 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/db/package.json    ./packages/db/
 COPY packages/types/package.json ./packages/types/
 COPY apps/api/package.json       ./apps/api/
+COPY apps/web/package.json       ./apps/web/
 
 RUN pnpm install --frozen-lockfile --prod
 
 # Copy compiled output + Prisma client
 COPY --from=builder /app/apps/api/dist          ./apps/api/dist
 COPY --from=builder /app/packages/db/prisma     ./packages/db/prisma
-COPY --from=builder /app/node_modules/.prisma   ./node_modules/.prisma
+
+RUN npx prisma@5.22.0 generate --schema=./packages/db/prisma/schema.prisma
 
 USER nestjs
 

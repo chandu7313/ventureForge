@@ -23,7 +23,7 @@ export class HttpCacheInterceptor implements NestInterceptor {
     // Only cache GET requests
     if (request.method !== 'GET') return next.handle();
 
-    const userId = request.user?.clerkUserId ?? 'anon';
+    const userId = request.user?.userId ?? 'anon';
     const cacheKey = `http:${userId}:${request.url}`;
 
     const cached = await this.redis.get<unknown>(cacheKey);

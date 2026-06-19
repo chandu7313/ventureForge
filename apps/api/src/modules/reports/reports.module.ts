@@ -23,11 +23,11 @@ const DLQ_NAME = 'report-generation-dlq';
     // Bull Board admin panel entries
     BullBoardModule.forFeature({
       name: REPORT_QUEUE,
-      adapter: BullMQAdapter,
+      adapter: BullMQAdapter as any,
     }),
     BullBoardModule.forFeature({
       name: DLQ_NAME,
-      adapter: BullMQAdapter,
+      adapter: BullMQAdapter as any,
     }),
   ],
   providers: [

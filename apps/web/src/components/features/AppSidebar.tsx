@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { LayoutDashboard, FileText, PlusCircle, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@startupsaarthi/ui";
@@ -18,6 +18,13 @@ const navItems = [
 export const AppSidebar = () => {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    // Basic clearing of cookie and redirect
+    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    router.push("/");
+  };
 
   return (
     <motion.aside
@@ -67,7 +74,9 @@ export const AppSidebar = () => {
           </div>
         )}
         <div className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
-          <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+          <button onClick={handleLogout} className="flex h-8 items-center justify-center rounded-md bg-rose-500/10 text-rose-600 px-3 hover:bg-rose-500/20 text-xs font-bold transition-colors">
+            Log Out
+          </button>
           {!isCollapsed && (
             <div className="flex flex-col">
               <span className="text-sm font-medium">My Account</span>

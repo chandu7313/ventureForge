@@ -12,10 +12,21 @@ import {
   MarketAgentOutput,
   CompetitorAgentOutput,
   ProductAgentOutput,
-} from './types';
+} from './ai.types';
 
 const CACHE_TTL_24H = 60 * 60 * 24; // 24 hours in seconds
 
+/**
+ * AiOrchestrator acts as the central brain of the AI evaluation process.
+ * It follows the Parallel-Agent pattern to reduce generation latency.
+ * 
+ * Flow:
+ * 1. Checks Redis cache for existing reports to prevent duplicate API costs.
+ * 2. Concurrently executes Market, Competitor, and Product specialized LLM agents.
+ * 3. Utilizes exponential backoff for retry mechanisms across all LLM boundaries.
+ * 4. Synthesizes the parallel outputs via the final VcAgent (Synthesis Agent).
+ * 5. Streams real-time progress via ReportGateway WebSockets.
+ */
 @Injectable()
 export class AiOrchestrator {
   private readonly logger = new Logger(AiOrchestrator.name);
@@ -55,6 +66,15 @@ export class AiOrchestrator {
     throw new Error(`[${agentName}] All ${maxRetries + 1} attempts failed. Last error: ${lastError!.message}`);
   }
 
+  /**
+   * Orchestrates the complete end-to-end report generation process.
+   * Runs the first stage of agents concurrently to maximize speed and bounds them in a Promise.all().
+   * Streams progress back to the frontend on each stage boundary.
+   *
+   * @param input The raw input parameters provided by the user.
+   * @returns A synthesized OrchestratorOutput containing all AI sections.
+   * @throws Will throw if any agent fails after max retries.
+   */
   async run(input: OrchestratorInput): Promise<OrchestratorOutput> {
     const cacheKey = `report:orchestration:${input.reportId}`;
 

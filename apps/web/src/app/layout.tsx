@@ -1,22 +1,39 @@
 import * as React from "react";
-import { Inter } from "next/font/google";
+import { Inter, Manrope, Space_Grotesk } from "next/font/google";
 import { Providers } from "../components/providers";
-import "../styles/globals.css"; // Assuming tailwind base is generated here
+import "../styles/globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+});
 
 export const metadata = {
   title: "StartupSaarthi AI - Validate Your Startup Idea",
-  description: "AI-powered startup validator for Indian founders.",
+  description:
+    "Editorial-First Intelligence trained on YC patterns and Indian institutional rigor. Enter your idea, get an actionable viability score.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased bg-background text-foreground min-h-screen`}>
-        <Providers>
-          {children}
-        </Providers>
+      <head>
+        {/* Material Symbols for icons */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body
+        className={`${inter.variable} ${manrope.variable} ${spaceGrotesk.variable} font-body antialiased bg-background text-on-background min-h-screen`}
+      >
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

@@ -5,9 +5,9 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async getCurrentUser(clerkUserId: string) {
+  async getCurrentUser(userId: string) {
     let user = await this.prisma.user.findUnique({
-      where: { clerkUserId },
+      where: { id: userId },
       include: {
         _count: {
           select: { reports: true, ideas: true }
@@ -15,29 +15,16 @@ export class UsersService {
       }
     });
 
-    // Lazy initialization if user logs in for the first time
     if (!user) {
-      // In a real app, you might sync this via Clerk Webhook instead
-      const email = `${clerkUserId}@placeholder.com`; // Fallback
-      user = await this.prisma.user.create({
-        data: {
-          clerkUserId,
-          email,
-        },
-        include: {
-          _count: {
-            select: { reports: true, ideas: true }
-          }
-        }
-      });
+      throw new Error('User not found');
     }
 
     return user;
   }
 
-  async updateProfile(clerkUserId: string, data: any) {
+  async updateProfile(userId: string, data: any) {
     return this.prisma.user.update({
-      where: { clerkUserId },
+      where: { id: userId },
       data,
     });
   }

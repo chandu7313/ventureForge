@@ -1,121 +1,431 @@
 "use client";
 
 import * as React from "react";
-import { WizardStepper } from "../../../components/features/WizardStepper";
-import { useMutation } from "@tanstack/react-query";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+
+const steps = [
+  { label: "Basics", num: 1 },
+  { label: "Context", num: 2 },
+  { label: "Confirm", num: 3 },
+];
+
+const industries = [
+  "Fintech",
+  "Healthtech",
+  "SaaS",
+  "E-commerce",
+  "EdTech",
+  "AgriTech",
+  "DeepTech",
+  "Climate Tech",
+  "Consumer",
+  "Enterprise AI",
+  "Supply Chain",
+  "Other",
+];
+
+const geographies = ["India", "US", "Europe", "Southeast Asia", "Global"];
+const stages = ["Idea", "MVP", "Pre-Revenue", "Revenue", "Growth"];
 
 export default function NewValidationPage() {
-  const [step, setStep] = React.useState(1);
-  const [idea, setIdea] = React.useState("");
   const router = useRouter();
+  const [currentStep, setCurrentStep] = React.useState(1);
+  const [loading, setLoading] = React.useState(false);
 
-  const validateMutation = useMutation({
-    mutationFn: async (ideaData: string) => {
-      const res = await fetch("/api/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea: ideaData }),
-      });
-      if (!res.ok) throw new Error("Validation failed");
-      return res.json();
-    },
-    onSuccess: (data) => {
-      toast.success("Idea validated successfully!");
-      router.push(`/report/${data.id || 'demo-123'}`);
-    },
-    onError: () => {
-      toast.error("Failed to validate idea. Please try again.");
-      setStep(1);
-    }
+  const [form, setForm] = React.useState({
+    name: "",
+    industry: "",
+    problem: "",
+    targetUsers: "",
+    geography: "",
+    stage: "",
+    teamSize: "",
+    budget: "",
+    primarySkill: "",
   });
 
-  const handleNext = () => {
-    if (step < 3) setStep(step + 1);
-    if (step === 3) {
-      validateMutation.mutate(idea);
+  const update = (field: string, value: string) =>
+    setForm((prev) => ({ ...prev, [field]: value }));
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      toast.success("Validation submitted! Generating report...");
+      router.push("/dashboard");
+    } catch {
+      toast.error("Something went wrong.");
+    } finally {
+      setLoading(false);
     }
   };
 
+  const progressWidth =
+    currentStep === 1 ? "25%" : currentStep === 2 ? "60%" : "100%";
+
   return (
-    <div className="max-w-3xl mx-auto py-8">
-      <div className="mb-10 text-center">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">Validate New Idea</h1>
-        <p className="text-muted-foreground">Describe your startup, target audience, and business model.</p>
-      </div>
+    <div className="bg-surface text-on-surface flex h-screen overflow-hidden font-body">
+      {/* ── SideNavBar ───────────────────────────────────────── */}
+      <nav className="bg-[#131b2e] h-screen w-64 fixed left-0 top-0 z-40 flex flex-col p-6 space-y-8 shadow-[4px_0_24px_rgba(0,0,0,0.1)]">
+        <div>
+          <div className="text-lg font-black text-white uppercase tracking-widest font-headline">
+            StartupSaarthi AI
+          </div>
+          <div className="font-headline text-sm font-medium tracking-wide text-slate-400 mt-1">
+            Sovereign Analyst
+          </div>
+        </div>
+        <div className="flex-1 flex flex-col space-y-2">
+          <Link
+            href="/dashboard"
+            className="text-slate-400 hover:text-white hover:bg-white/5 font-headline text-sm font-medium tracking-wide flex items-center space-x-3 p-3 rounded-lg transition-all duration-300"
+          >
+            <span className="material-symbols-outlined">dashboard</span>
+            <span>Dashboard</span>
+          </Link>
+          <Link
+            href="/validate/new"
+            className="bg-white/10 text-white rounded-lg font-bold font-headline text-sm tracking-wide flex items-center space-x-3 p-3 transition-all duration-300"
+          >
+            <span className="material-symbols-outlined">edit_note</span>
+            <span>Input</span>
+          </Link>
+          <Link
+            href="/dashboard"
+            className="text-slate-400 hover:text-white hover:bg-white/5 font-headline text-sm font-medium tracking-wide flex items-center space-x-3 p-3 rounded-lg transition-all duration-300"
+          >
+            <span className="material-symbols-outlined">analytics</span>
+            <span>Reports</span>
+          </Link>
+          <Link
+            href="/dashboard"
+            className="text-slate-400 hover:text-white hover:bg-white/5 font-headline text-sm font-medium tracking-wide flex items-center space-x-3 p-3 rounded-lg transition-all duration-300"
+          >
+            <span className="material-symbols-outlined">settings</span>
+            <span>Settings</span>
+          </Link>
+        </div>
+        <div>
+          <Link
+            href="#"
+            className="text-slate-400 hover:text-white hover:bg-white/5 font-headline text-sm font-medium tracking-wide flex items-center space-x-3 p-3 rounded-lg transition-all duration-300"
+          >
+            <span className="material-symbols-outlined">help_outline</span>
+            <span>Help Center</span>
+          </Link>
+        </div>
+      </nav>
 
-      <WizardStepper steps={["Basic Details", "Market Info", "Analyze"]} currentStep={step} />
-
-      <div className="rounded-xl border bg-card p-6 shadow-sm min-h-[300px] flex flex-col">
-        {step === 1 && (
-          <div className="flex-1 space-y-4 animate-in fade-in slide-in-from-bottom-4">
-            <div>
-              <label className="text-sm font-medium block mb-1.5">Startup Name / Working Title</label>
-              <input type="text" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" placeholder="e.g. Acme Corp" />
+      {/* ── Main Content ─────────────────────────────────────── */}
+      <main className="ml-64 flex-1 h-full overflow-y-auto bg-surface">
+        {/* Header */}
+        <header className="sticky top-0 z-30 bg-surface-container-lowest/80 backdrop-blur-md px-12 py-6 flex justify-between items-center border-b border-surface-container-high/50">
+          <div>
+            <h1 className="font-headline text-2xl font-bold text-on-surface tracking-tight">
+              New Idea Submission
+            </h1>
+            <p className="font-body text-on-surface-variant text-sm mt-1">
+              Provide initial parameters for preliminary analysis.
+            </p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="material-symbols-outlined text-on-surface-variant">
+              notifications
+            </span>
+            <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-label text-sm font-bold">
+              SA
             </div>
-            <div>
-              <label className="text-sm font-medium block mb-1.5">Elevator Pitch (The Idea)</label>
-              <textarea 
-                rows={4}
-                value={idea}
-                onChange={(e) => setIdea(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 resize-none" 
-                placeholder="Describe the problem you are solving and your solution..." 
+          </div>
+        </header>
+
+        <div className="px-12 py-10 max-w-5xl mx-auto pb-32">
+          {/* ── Progress Tracker ──────────────────────────────── */}
+          <div className="mb-12">
+            <div className="flex justify-between items-center relative z-10">
+              {steps.map((step) => (
+                <div key={step.num} className="flex flex-col items-center">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-label font-bold mb-2 shadow-sm transition-colors ${
+                      currentStep >= step.num
+                        ? "bg-primary-container text-on-primary"
+                        : "bg-surface-container-high text-on-surface-variant"
+                    }`}
+                  >
+                    {step.num}
+                  </div>
+                  <span
+                    className={`font-label text-xs uppercase tracking-wider ${
+                      currentStep >= step.num
+                        ? "text-on-surface font-semibold"
+                        : "text-on-surface-variant"
+                    }`}
+                  >
+                    {step.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="relative -mt-11 mb-11 h-0.5 bg-surface-container-high w-full z-0">
+              <div
+                className="absolute top-0 left-0 h-full bg-primary-container transition-all duration-500"
+                style={{ width: progressWidth }}
               />
             </div>
           </div>
-        )}
 
-        {step === 2 && (
-          <div className="flex-1 space-y-4 animate-in fade-in slide-in-from-bottom-4">
-             <div>
-              <label className="text-sm font-medium block mb-1.5">Target Audience</label>
-              <input type="text" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" placeholder="e.g. B2B SaaS companies" />
+          {/* ── Form Container ────────────────────────────────── */}
+          <div className="bg-surface-container-lowest rounded-xl p-10 ambient-shadow border border-surface-container-high/30">
+            {/* Step 1: Basics */}
+            {currentStep === 1 && (
+              <>
+                <h2 className="font-headline text-xl font-bold text-on-surface mb-8">
+                  Basic Parameters
+                </h2>
+                <div className="space-y-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div>
+                      <label className="font-label text-sm text-on-surface-variant block mb-1">
+                        Project / Idea Name
+                      </label>
+                      <input
+                        className="w-full bg-transparent border-0 border-b border-outline-variant/50 focus:border-primary focus:ring-0 px-0 py-2 font-body text-on-background transition-colors"
+                        placeholder="e.g., Project Phoenix"
+                        value={form.name}
+                        onChange={(e) => update("name", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="font-label text-sm text-on-surface-variant block mb-1">
+                        Primary Industry
+                      </label>
+                      <div className="relative">
+                        <select
+                          className="w-full bg-transparent border-0 border-b border-outline-variant/50 focus:border-primary focus:ring-0 px-0 py-2 font-body text-on-background appearance-none transition-colors"
+                          value={form.industry}
+                          onChange={(e) => update("industry", e.target.value)}
+                        >
+                          <option value="" disabled>
+                            Select industry sector
+                          </option>
+                          {industries.map((i) => (
+                            <option key={i}>{i}</option>
+                          ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute right-0 top-2 text-on-surface-variant pointer-events-none">
+                          expand_more
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="font-label text-sm text-on-surface-variant block mb-1">
+                      Problem Statement
+                    </label>
+                    <textarea
+                      className="w-full bg-transparent border-0 border-b border-outline-variant/50 focus:border-primary focus:ring-0 px-0 py-2 font-body text-on-background resize-none transition-colors"
+                      placeholder="Describe the core problem this idea solves..."
+                      rows={3}
+                      value={form.problem}
+                      onChange={(e) => update("problem", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="font-label text-sm text-on-surface-variant block mb-1">
+                      Target Audience / Demographic
+                    </label>
+                    <input
+                      className="w-full bg-transparent border-0 border-b border-outline-variant/50 focus:border-primary focus:ring-0 px-0 py-2 font-body text-on-background transition-colors"
+                      placeholder="Who is the primary user?"
+                      value={form.targetUsers}
+                      onChange={(e) => update("targetUsers", e.target.value)}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Step 2: Context */}
+            {currentStep === 2 && (
+              <>
+                <h2 className="font-headline text-xl font-bold text-on-surface mb-8">
+                  Context &amp; Parameters
+                </h2>
+                <div className="space-y-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div>
+                      <label className="font-label text-sm text-on-surface-variant block mb-1">
+                        Geography
+                      </label>
+                      <select
+                        className="w-full bg-transparent border-0 border-b border-outline-variant/50 focus:border-primary focus:ring-0 px-0 py-2 font-body text-on-background appearance-none transition-colors"
+                        value={form.geography}
+                        onChange={(e) => update("geography", e.target.value)}
+                      >
+                        <option value="" disabled>
+                          Select geography
+                        </option>
+                        {geographies.map((g) => (
+                          <option key={g}>{g}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-label text-sm text-on-surface-variant block mb-1">
+                        Stage
+                      </label>
+                      <select
+                        className="w-full bg-transparent border-0 border-b border-outline-variant/50 focus:border-primary focus:ring-0 px-0 py-2 font-body text-on-background appearance-none transition-colors"
+                        value={form.stage}
+                        onChange={(e) => update("stage", e.target.value)}
+                      >
+                        <option value="" disabled>
+                          Select stage
+                        </option>
+                        {stages.map((s) => (
+                          <option key={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div>
+                      <label className="font-label text-sm text-on-surface-variant block mb-1">
+                        Team Size
+                      </label>
+                      <input
+                        className="w-full bg-transparent border-0 border-b border-outline-variant/50 focus:border-primary focus:ring-0 px-0 py-2 font-body text-on-background transition-colors"
+                        placeholder="e.g., 3"
+                        type="number"
+                        value={form.teamSize}
+                        onChange={(e) => update("teamSize", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="font-label text-sm text-on-surface-variant block mb-1">
+                        Budget ($)
+                      </label>
+                      <input
+                        className="w-full bg-transparent border-0 border-b border-outline-variant/50 focus:border-primary focus:ring-0 px-0 py-2 font-body text-on-background transition-colors"
+                        placeholder="e.g., 50000"
+                        type="number"
+                        value={form.budget}
+                        onChange={(e) => update("budget", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="font-label text-sm text-on-surface-variant block mb-1">
+                      Primary Skill of Founding Team
+                    </label>
+                    <input
+                      className="w-full bg-transparent border-0 border-b border-outline-variant/50 focus:border-primary focus:ring-0 px-0 py-2 font-body text-on-background transition-colors"
+                      placeholder="e.g., Engineering, Sales, Product"
+                      value={form.primarySkill}
+                      onChange={(e) => update("primarySkill", e.target.value)}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Step 3: Confirm */}
+            {currentStep === 3 && (
+              <>
+                <h2 className="font-headline text-xl font-bold text-on-surface mb-8">
+                  Confirm Submission
+                </h2>
+                <div className="space-y-6">
+                  {Object.entries(form)
+                    .filter(([, v]) => v)
+                    .map(([key, value]) => (
+                      <div
+                        key={key}
+                        className="flex justify-between items-center py-3 border-b border-outline-variant/15"
+                      >
+                        <span className="font-label text-sm text-on-surface-variant capitalize">
+                          {key.replace(/([A-Z])/g, " $1")}
+                        </span>
+                        <span className="font-body text-sm text-on-surface font-medium">
+                          {value}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </>
+            )}
+
+            {/* ── Navigation Actions ─────────────────────────── */}
+            <div className="flex justify-between items-center pt-8 mt-8 border-t border-surface-container-high/50">
+              {currentStep > 1 ? (
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep((s) => s - 1)}
+                  className="text-on-surface-variant font-label text-sm font-semibold tracking-wide hover:text-on-surface transition-colors flex items-center space-x-2"
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    arrow_back
+                  </span>
+                  <span>Back</span>
+                </button>
+              ) : (
+                <Link
+                  href="/dashboard"
+                  className="text-on-surface-variant font-label text-sm font-semibold tracking-wide hover:text-on-surface transition-colors"
+                >
+                  Cancel
+                </Link>
+              )}
+
+              {currentStep < 3 ? (
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep((s) => s + 1)}
+                  className="bg-primary-container text-on-primary font-label text-sm font-bold tracking-wide px-8 py-3 rounded-md active:scale-95 transition-transform flex items-center space-x-2"
+                >
+                  <span>
+                    Next: {currentStep === 1 ? "Context" : "Confirm"}
+                  </span>
+                  <span className="material-symbols-outlined text-sm">
+                    arrow_forward
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="bg-secondary text-on-secondary font-label text-sm font-bold tracking-wide px-8 py-3 rounded-md active:scale-95 transition-transform flex items-center space-x-2 shadow-lg shadow-secondary/20 disabled:opacity-50"
+                >
+                  <span>
+                    {loading ? "Submitting..." : "Submit for Analysis"}
+                  </span>
+                  <span className="material-symbols-outlined text-sm">
+                    bolt
+                  </span>
+                </button>
+              )}
             </div>
+          </div>
+
+          {/* ── Instructional Sidebar ─────────────────────────── */}
+          <div className="mt-12 bg-surface-container p-6 rounded-lg border border-surface-dim/20 flex items-start space-x-4">
+            <span className="material-symbols-outlined text-secondary">
+              lightbulb
+            </span>
             <div>
-              <label className="text-sm font-medium block mb-1.5">Monetization Strategy</label>
-              <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                <option>SaaS Subscription</option>
-                <option>Marketplace Commission</option>
-                <option>E-commerce Direct</option>
-                <option>Other</option>
-              </select>
+              <h4 className="font-headline font-semibold text-sm text-on-surface">
+                Precision Matters
+              </h4>
+              <p className="font-body text-xs text-on-surface-variant mt-1 leading-relaxed">
+                The Sovereign Analyst uses these initial parameters to construct
+                the foundational query matrix. Clearer problem definitions yield
+                higher confidence scores in the final validation report.
+              </p>
             </div>
           </div>
-        )}
-
-        {step === 3 && (
-          <div className="flex-1 flex flex-col items-center justify-center text-center animate-in fade-in slide-in-from-bottom-4">
-            <div className="h-16 w-16 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center mb-4">
-              <Loader2 className={cn("h-8 w-8 text-indigo-600 dark:text-indigo-400", validateMutation.isPending && "animate-spin")} />
-            </div>
-            <h3 className="text-lg font-bold mb-2">Ready to Analyze</h3>
-            <p className="text-muted-foreground text-sm max-w-sm">
-              Our multi-agent system will now evaluate your market, predict risks, and build an MVP timeline. This costs 1 credit.
-            </p>
-          </div>
-        )}
-
-        <div className="mt-8 pt-6 border-t flex justify-between">
-          <button
-            disabled={step === 1 || validateMutation.isPending}
-            onClick={() => setStep(step - 1)}
-            className="rounded-md border border-input bg-background hover:bg-accent px-4 py-2 text-sm font-medium disabled:opacity-50 transition-colors"
-          >
-            Back
-          </button>
-          <button
-            disabled={validateMutation.isPending}
-            onClick={handleNext}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center gap-2"
-          >
-            {validateMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            {step === 3 ? "Start Analysis" : "Next Step"}
-          </button>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

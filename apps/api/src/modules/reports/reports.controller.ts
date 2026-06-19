@@ -57,7 +57,7 @@ export class ReportsController {
   @ApiResponse({ status: 202, description: 'Job accepted' })
   @ApiResponse({ status: 402, description: 'Plan limit reached' })
   async generateReport(
-    @CurrentUser() user: { clerkUserId: string },
+    @CurrentUser() userId: string,
     @Body() dto: GenerateReportDto,
   ) {
     // 1. Deduplication check — return cached report if same idea already analyzed
@@ -79,7 +79,7 @@ export class ReportsController {
 
     // 2. Create the report record + queue the job
     const { report, jobId, userPlan } = await this.reportsService.initiateGeneration(
-      user.clerkUserId,
+      userId,
       dto,
       ideaHash,
     );
@@ -113,10 +113,10 @@ export class ReportsController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getUserReports(
-    @CurrentUser() user: { clerkUserId: string },
+    @CurrentUser() userId: string,
     @Query() query: PaginationDto,
   ) {
-    return this.reportsService.getUserReports(user.clerkUserId, query.page, query.limit);
+    return this.reportsService.getUserReports(userId, query.page, query.limit);
   }
 
   // ─────────────────────────────────────────────────
@@ -127,13 +127,13 @@ export class ReportsController {
   @ApiQuery({ name: 'id1', required: true })
   @ApiQuery({ name: 'id2', required: true })
   async compareReports(
-    @CurrentUser() user: { clerkUserId: string },
+    @CurrentUser() userId: string,
     @Query('id1') id1: string,
     @Query('id2') id2: string,
   ) {
     if (!id1 || !id2) throw new BadRequestException('Both id1 and id2 are required');
     if (id1 === id2) throw new BadRequestException('Report IDs must be different');
-    return this.reportsService.compareReports(user.clerkUserId, id1, id2);
+    return this.reportsService.compareReports(userId, id1, id2);
   }
 
   // ─────────────────────────────────────────────────
@@ -143,10 +143,10 @@ export class ReportsController {
   @ApiOperation({ summary: 'Get report by ID (Redis cache → DB)' })
   @ApiParam({ name: 'id', description: 'Report CUID' })
   async getReport(
-    @CurrentUser() user: { clerkUserId: string },
+    @CurrentUser() userId: string,
     @Param('id') id: string,
   ) {
-    const report = await this.reportsService.getReportById(user.clerkUserId, id);
+    const report = await this.reportsService.getReportById(userId, id);
     if (!report) throw new NotFoundException(`Report ${id} not found`);
     return report;
   }
@@ -158,9 +158,9 @@ export class ReportsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft-delete a report' })
   async deleteReport(
-    @CurrentUser() user: { clerkUserId: string },
+    @CurrentUser() userId: string,
     @Param('id') id: string,
   ) {
-    await this.reportsService.softDeleteReport(user.clerkUserId, id);
+    await this.reportsService.softDeleteReport(userId, id);
   }
 }

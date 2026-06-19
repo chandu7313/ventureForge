@@ -13,16 +13,16 @@ export class AnalyticsController {
 
   @Get('summary')
   @ApiOperation({ summary: 'Get report metrics and usage tracking' })
-  async getSummary(@CurrentUser() user: any) {
+  async getSummary(@CurrentUser() userId: string) {
     const dbUser = await this.prisma.user.findUnique({
-      where: { clerkUserId: user.clerkUserId },
+      where: { id: userId },
     });
     
     if (!dbUser) return null;
 
     const totalReports = await this.prisma.report.count({ where: { userId: dbUser.id } });
     const reportsWithScores = await this.prisma.report.findMany({
-      where: { userId: dbUser.id, status: 'completed' },
+      where: { userId: dbUser.id, status: 'DONE' },
       select: { marketScore: true },
     });
 
@@ -33,7 +33,7 @@ export class AnalyticsController {
     return {
       totalReports,
       avgScore: Math.round(avgScore),
-      validationsLeft: dbUser.plan === 'FREE' ? Math.max(0, 1 - dbUser.reportsCount) : 'Unlimited',
+      validationsLeft: dbUser.plan === 'FREE' ? Math.max(0, dbUser.reportsLimit - dbUser.reportsUsed) : 'Unlimited',
     };
   }
 }
