@@ -19,10 +19,9 @@ export default () => ({
       ideaDedup: parseInt(process.env.REDIS_TTL_IDEA_DEDUP || '604800', 10),
     },
   },
-  clerk: {
-    secretKey: process.env.CLERK_SECRET_KEY,
-    publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-    webhookSecret: process.env.CLERK_WEBHOOK_SECRET,
+  jwt: {
+    secret: process.env.JWT_SECRET || 'super-secret',
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   },
   anthropic: {
     apiKey: process.env.ANTHROPIC_API_KEY,

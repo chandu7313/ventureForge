@@ -16,9 +16,8 @@ export const validationSchema = Joi.object({
   REDIS_TTL_USER: Joi.number().default(3600),
   REDIS_TTL_IDEA_DEDUP: Joi.number().default(604800),
 
-  CLERK_SECRET_KEY: Joi.string().required(),
-  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: Joi.string().required(),
-  CLERK_WEBHOOK_SECRET: Joi.string().optional(), // Optional for dev
+  JWT_SECRET: Joi.string().required(),
+  JWT_EXPIRES_IN: Joi.string().default('7d'),
 
   ANTHROPIC_API_KEY: Joi.string().required(),
   ANTHROPIC_MODEL: Joi.string().default('claude-sonnet-4-5'),
