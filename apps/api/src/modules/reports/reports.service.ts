@@ -24,11 +24,11 @@ export class ReportsService {
   // logs usage, returns report + plan for producer
   // ─────────────────────────────────────────────────
   async initiateGeneration(
-    clerkUserId: string,
+    userId: string,
     dto: GenerateReportDto,
     ideaHash: string,
   ): Promise<{ report: any; jobId: null; userPlan: Plan }> {
-    const user = await this.prisma.user.findUnique({ where: { clerkId: clerkUserId } });
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
 
     // Enforce FREE tier limit (reportsLimit of -1 = unlimited)
@@ -78,7 +78,7 @@ export class ReportsService {
   // ─────────────────────────────────────────────────
   // GET by ID — Redis first, then DB
   // ─────────────────────────────────────────────────
-  async getReportById(clerkUserId: string, reportId: string) {
+  async getReportById(userId: string, reportId: string) {
     const cacheKey = CacheKeys.report(reportId);
     const cached = await this.redis.get<any>(cacheKey);
     if (cached) {
@@ -86,7 +86,7 @@ export class ReportsService {
       return cached;
     }
 
-    const user = await this.prisma.user.findUnique({ where: { clerkId: clerkUserId } });
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
 
     const report = await this.prisma.report.findFirst({
@@ -104,8 +104,8 @@ export class ReportsService {
   // ─────────────────────────────────────────────────
   // GET paginated user reports
   // ─────────────────────────────────────────────────
-  async getUserReports(clerkUserId: string, page = 1, limit = 10) {
-    const user = await this.prisma.user.findUnique({ where: { clerkId: clerkUserId } });
+  async getUserReports(userId: string, page = 1, limit = 10) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
 
     return this.reports.findByUser(user.id, page, limit);
@@ -114,10 +114,10 @@ export class ReportsService {
   // ─────────────────────────────────────────────────
   // Compare two reports
   // ─────────────────────────────────────────────────
-  async compareReports(clerkUserId: string, id1: string, id2: string) {
+  async compareReports(userId: string, id1: string, id2: string) {
     const [r1, r2] = await Promise.all([
-      this.getReportById(clerkUserId, id1),
-      this.getReportById(clerkUserId, id2),
+      this.getReportById(userId, id1),
+      this.getReportById(userId, id2),
     ]);
 
     if (!r1) throw new NotFoundException(`Report ${id1} not found`);
@@ -132,7 +132,7 @@ export class ReportsService {
     // Persist comparison record
     const comparison = await this.prisma.comparison.create({
       data: {
-        userId: (await this.prisma.user.findUnique({ where: { clerkId: clerkUserId } }))!.id,
+        userId,
         reportAId: id1,
         reportBId: id2,
         winner,
@@ -151,8 +151,8 @@ export class ReportsService {
   // ─────────────────────────────────────────────────
   // Soft delete report + bust cache
   // ─────────────────────────────────────────────────
-  async softDeleteReport(clerkUserId: string, reportId: string) {
-    const user = await this.prisma.user.findUnique({ where: { clerkId: clerkUserId } });
+  async softDeleteReport(userId: string, reportId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
 
     await this.reports.softDelete(reportId, user.id);

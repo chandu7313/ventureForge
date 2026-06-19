@@ -1,7 +1,7 @@
 import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
-import { AiOrchestrator } from '../ai/orchestrator';
+import { AiOrchestrator } from '../ai/ai.orchestrator';
 import { ReportRepository } from '../../prisma/report.repository';
 import { RedisService, CacheKeys, CacheTTL } from '../../common/redis/redis.service';
 import { IdeaDedupService } from './idea-dedup.service';
@@ -9,6 +9,17 @@ import { ReportProducer, GenerateReportJobData } from './report.producer';
 import { ReportStatus, Verdict } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
+/**
+ * ReportWorker is a BullMQ Background Processor.
+ * It consumes `GenerateReportJobData` from the Redis queue.
+ * 
+ * Flow:
+ * 1. Updates DB status to PROCESSING.
+ * 2. Invokes AiOrchestrator to generate the comprehensive report.
+ * 3. Maps Orchestrator output to Prisma Report models and JSON fields.
+ * 4. Caches the final report in Redis for 24 hours.
+ * 5. Handles transient failures using BullMQ exponential backoff and moves to Dead Letter Queue (DLQ) if exhausted.
+ */
 @Processor('report-generation', { concurrency: 3 })
 export class ReportWorker extends WorkerHost {
   private readonly logger = new Logger(ReportWorker.name);
@@ -24,6 +35,12 @@ export class ReportWorker extends WorkerHost {
     super();
   }
 
+  /**
+   * Processes an individual job pulled from the BullMQ Queue.
+   * This is executed outside the HTTP request lifecycle.
+   * 
+   * @param job BullMQ Job containing user and idea payload context.
+   */
   async process(job: Job<GenerateReportJobData>): Promise<void> {
     const data = job.data;
     const startTime = Date.now();
@@ -37,7 +54,7 @@ export class ReportWorker extends WorkerHost {
       // ── Run all 4 agents via orchestrator ─────────────────────────────
       const result = await this.orchestrator.run({
         reportId: data.reportId,
-        ideaId: data.ideaId,
+        // removed ideaId
         ideaDescription: data.ideaDescription,
         industry: data.industry,
         geography: data.geography,
