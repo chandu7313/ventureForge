@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # Stage 1: Install dependencies
 # ─────────────────────────────────────────────────────────────
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -15,6 +15,7 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/config/package.json ./packages/config/
 COPY packages/db/package.json ./packages/db/
 COPY apps/web/package.json ./apps/web/
+COPY apps/api/package.json ./apps/api/
 
 # Install production dependencies only
 RUN pnpm install --frozen-lockfile --prod --filter @startupsaarthi/web...
@@ -22,7 +23,7 @@ RUN pnpm install --frozen-lockfile --prod --filter @startupsaarthi/web...
 # ─────────────────────────────────────────────────────────────
 # Stage 2: Build the Next.js app
 # ─────────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -54,7 +55,7 @@ RUN pnpm --filter @startupsaarthi/web exec next build
 # ─────────────────────────────────────────────────────────────
 # Stage 3: Production runner (~120MB)
 # ─────────────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
