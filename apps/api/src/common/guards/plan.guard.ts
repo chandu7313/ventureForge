@@ -11,11 +11,11 @@ export class PlanGuard implements CanActivate {
     if (!requiredPlan) return true; // No plan required for this route
 
     const request = context.switchToHttp().getRequest();
-    const clerkUserId = request.user?.clerkUserId;
-    if (!clerkUserId) return false;
+    const userId = request.user?.userId;
+    if (!userId) return false;
 
     const user = await this.prisma.user.findUnique({
-      where: { clerkUserId },
+      where: { id: userId },
     });
 
     if (!user) {
@@ -28,7 +28,7 @@ export class PlanGuard implements CanActivate {
     }
 
     // Check usage limits for AI generation
-    if (user.plan === 'FREE' && user.reportsCount >= 1) {
+    if (user.plan === 'FREE' && user.reportsUsed >= user.reportsLimit && user.reportsLimit !== -1) {
       throw new HttpException('Free tier limit reached. Please upgrade to Pro.', HttpStatus.TOO_MANY_REQUESTS);
     }
 
