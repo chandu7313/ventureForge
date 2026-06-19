@@ -25,7 +25,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
       isGlobal: true,
       useFactory: async () => ({
         store: await redisStore({ url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}` }),
-      }),
+      } as any),
     }),
 
     // BullMQ connection
