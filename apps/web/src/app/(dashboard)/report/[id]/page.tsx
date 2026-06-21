@@ -1,9 +1,9 @@
+"use client";
+
 import * as React from "react";
 import Link from "next/link";
-
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  return { title: `Report - FarmAI | StartupSaarthi AI` };
-}
+import { useReportSocket } from "@/hooks/useReportSocket";
+import { apiClient } from "@/lib/api-client";
 
 const gauges = [
   { label: "Market Potential", score: 85, offset: 37.68, color: "text-secondary" },
@@ -15,12 +15,73 @@ const gauges = [
 const tabs = ["Market Analysis", "Product", "Competitors", "Financials", "Team", "Risks", "Cap Table", "ESG Impact"];
 
 export default function ReportPage({ params }: { params: { id: string } }) {
+  const [report, setReport] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+  const { progress } = useReportSocket(params.id);
+
+  React.useEffect(() => {
+    async function loadReport() {
+      try {
+        const data = await apiClient(`/api/v1/reports/${params.id}`);
+        setReport(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadReport();
+  }, [params.id, progress]); // Re-fetch when progress updates
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-surface">
+        <div className="text-center">
+          <span className="material-symbols-outlined animate-spin text-4xl text-primary mb-4">sync</span>
+          <h2 className="text-xl font-bold text-on-surface">Loading Report...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (report?.status === "PROCESSING" || report?.status === "PENDING") {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-surface px-4">
+        <div className="max-w-md w-full bg-surface-container-lowest p-8 rounded-xl ambient-shadow text-center">
+          <div className="relative w-24 h-24 mx-auto mb-6">
+            <svg className="w-full h-full animate-spin" viewBox="0 0 100 100">
+              <circle className="text-surface-container-high stroke-current" cx="50" cy="50" fill="transparent" r="40" strokeWidth="8" />
+              <circle className="text-secondary stroke-current" cx="50" cy="50" fill="transparent" r="40" strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * (progress?.progress || 10)) / 100} strokeLinecap="round" strokeWidth="8" style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%", transition: "stroke-dashoffset 0.5s ease-in-out" }} />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center font-bold text-lg">{progress?.progress || 10}%</div>
+          </div>
+          <h2 className="text-2xl font-bold text-on-surface mb-2">Analyzing Idea</h2>
+          <p className="text-on-surface-variant text-sm mb-4">
+            {progress?.stage || "Waking up AI agents..."}
+          </p>
+          <div className="h-1 w-full bg-surface-container-high rounded-full overflow-hidden">
+             <div className="h-full bg-primary-container transition-all duration-500" style={{ width: `${progress?.progress || 10}%` }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const ideaName = report?.idea?.name || "Startup Idea";
+  const industry = report?.idea?.industry || "Tech";
+  const stage = report?.idea?.stage || "Idea";
+  const verdict = report?.data?.vcScore?.verdict || "Analysis Complete";
+  const conviction = report?.data?.vcScore?.score || "N/A";
+
   return (
     <div className="bg-surface text-on-surface flex min-h-screen font-body">
       {/* ── SideNavBar ───────────────────────────────────────── */}
       <nav className="bg-[#131b2e] font-headline text-sm font-medium tracking-wide h-screen w-64 fixed left-0 top-0 z-40 shadow-[4px_0_24px_rgba(0,0,0,0.1)] flex-col p-6 space-y-8 hidden md:flex">
         <div className="flex flex-col mb-4">
-          <div className="text-lg font-black text-white uppercase tracking-widest mb-2">StartupSaarthi AI</div>
+          <div className="flex items-center gap-2 mb-2">
+            <img src="/app-logo.png" alt="startupIQ Logo" className="h-6 w-6 object-contain" />
+            <div className="text-lg font-black text-white uppercase tracking-widest">startupIQ</div>
+          </div>
           <div className="text-slate-400 text-xs">Sovereign Analyst</div>
         </div>
         <Link href="/validate/new" className="bg-primary-container border border-green-500 text-green-500 rounded py-3 px-4 font-bold hover:bg-green-500 hover:text-white transition-all duration-300 w-full flex justify-center items-center gap-2">
@@ -53,9 +114,9 @@ export default function ReportPage({ params }: { params: { id: string } }) {
         {/* Header */}
         <header className="glass-panel sticky top-0 z-30 px-10 py-6 flex justify-between items-center border-b border-outline-variant/15 bg-surface-container-lowest/85 backdrop-blur-xl">
           <div className="flex items-center gap-4">
-            <h1 className="font-headline text-3xl font-extrabold text-on-surface tracking-tight">FarmAI</h1>
-            <span className="bg-surface-container text-on-surface-variant font-label text-xs px-3 py-1 rounded-full uppercase tracking-wider font-semibold">AgriTech</span>
-            <span className="bg-secondary-container text-on-secondary-fixed font-label text-xs px-3 py-1 rounded-full uppercase tracking-wider font-semibold">Series A</span>
+            <h1 className="font-headline text-3xl font-extrabold text-on-surface tracking-tight">{ideaName}</h1>
+            <span className="bg-surface-container text-on-surface-variant font-label text-xs px-3 py-1 rounded-full uppercase tracking-wider font-semibold">{industry}</span>
+            <span className="bg-secondary-container text-on-secondary-fixed font-label text-xs px-3 py-1 rounded-full uppercase tracking-wider font-semibold">{stage}</span>
           </div>
           <div className="flex items-center gap-4">
             <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-container-low rounded-lg transition-colors">
@@ -77,15 +138,15 @@ export default function ReportPage({ params }: { params: { id: string } }) {
               <div className="absolute top-0 left-0 w-1 h-full bg-secondary" />
               <div className="flex items-center gap-3 mb-6">
                 <span className="material-symbols-outlined text-secondary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-                <h2 className="font-headline text-2xl font-bold text-on-surface">Analyst Verdict: Strong Buy</h2>
+                <h2 className="font-headline text-2xl font-bold text-on-surface">Analyst Verdict: {verdict}</h2>
               </div>
               <p className="font-body text-lg text-on-surface-variant leading-relaxed mb-8">
-                FarmAI demonstrates a compelling product-market fit within the precision agriculture sector. Their proprietary computer vision models for early pest detection offer a <span className="font-semibold text-on-surface">32% reduction in crop loss</span> compared to traditional methods. While capital intensive, the structural tailwinds in sustainable farming provide a robust defensive moat.
+                {report?.data?.vcScore?.summary || report?.idea?.description || "No analysis summary available yet."}
               </p>
               <div className="grid grid-cols-3 gap-6 pt-6 border-t border-outline-variant/15">
                 <div>
                   <p className="font-label text-xs text-on-tertiary-container uppercase tracking-widest mb-1">Conviction Score</p>
-                  <p className="font-label text-3xl font-bold text-on-surface">8.4<span className="text-lg text-outline">/10</span></p>
+                  <p className="font-label text-3xl font-bold text-on-surface">{conviction}<span className="text-lg text-outline">/10</span></p>
                 </div>
                 <div>
                   <p className="font-label text-xs text-on-tertiary-container uppercase tracking-widest mb-1">Target Valuation</p>
