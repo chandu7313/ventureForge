@@ -10,6 +10,12 @@ export class CreateIdeaDto {
   @IsString() name: string;
   @IsString() description: string;
   @IsString() @IsOptional() targetAudience?: string;
+  @IsString() @IsOptional() industry?: string;
+  @IsString() @IsOptional() geography?: string;
+  @IsString() @IsOptional() stage?: string;
+  @IsOptional() teamSize?: number;
+  @IsString() @IsOptional() budget?: string;
+  @IsString() @IsOptional() primarySkill?: string;
   @IsString() @IsOptional() monetization?: string;
 }
 
