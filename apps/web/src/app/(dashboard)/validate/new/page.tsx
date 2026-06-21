@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { apiClient } from "@/lib/api-client";
 
 const steps = [
   { label: "Basics", num: 1 },
@@ -52,10 +53,40 @@ export default function NewValidationPage() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
+      // 1. Create Idea
+      const ideaResponse = await apiClient("/api/v1/ideas", {
+        method: "POST",
+        data: {
+          name: form.name,
+          description: form.problem,
+          targetAudience: form.targetUsers,
+          industry: form.industry,
+          geography: form.geography,
+          stage: form.stage,
+          teamSize: form.teamSize ? parseInt(form.teamSize) : 1,
+          budget: form.budget,
+          primarySkill: form.primarySkill,
+        },
+      });
+
+      // 2. Queue Report Generation
+      const reportResponse = await apiClient("/api/v1/reports/generate", {
+        method: "POST",
+        data: {
+          ideaId: ideaResponse.id,
+          ideaDescription: form.problem,
+          industry: form.industry,
+          geography: form.geography,
+          stage: form.stage,
+          teamSize: form.teamSize ? parseInt(form.teamSize) : 1,
+          budget: form.budget,
+        },
+      });
+
       toast.success("Validation submitted! Generating report...");
-      router.push("/dashboard");
-    } catch {
-      toast.error("Something went wrong.");
+      router.push(`/report/${reportResponse.reportId}`);
+    } catch (err: any) {
+      toast.error(err.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -69,8 +100,11 @@ export default function NewValidationPage() {
       {/* ── SideNavBar ───────────────────────────────────────── */}
       <nav className="bg-[#131b2e] h-screen w-64 fixed left-0 top-0 z-40 flex flex-col p-6 space-y-8 shadow-[4px_0_24px_rgba(0,0,0,0.1)]">
         <div>
-          <div className="text-lg font-black text-white uppercase tracking-widest font-headline">
-            StartupSaarthi AI
+          <div className="flex items-center gap-2 mb-2">
+            <img src="/app-logo.png" alt="startupIQ Logo" className="h-6 w-6 object-contain" />
+            <div className="text-lg font-black text-white uppercase tracking-widest font-headline">
+              startupIQ
+            </div>
           </div>
           <div className="font-headline text-sm font-medium tracking-wide text-slate-400 mt-1">
             Sovereign Analyst
