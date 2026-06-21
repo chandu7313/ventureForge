@@ -1,10 +1,10 @@
 {
-  "name": "@startupsaarthi/types",
+  "name": "@startupiq/types",
   "version": "1.0.0",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "devDependencies": {
-    "@startupsaarthi/config": "workspace:*",
+    "@startupiq/config": "workspace:*",
     "typescript": "5.3.3"
   }
 }
