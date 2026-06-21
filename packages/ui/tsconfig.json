@@ -1,5 +1,5 @@
 {
-  "extends": "@startupsaarthi/config/tsconfig.react.json",
+  "extends": "@startupiq/config/tsconfig.react.json",
   "compilerOptions": {
     "baseUrl": "./",
     "paths": {
