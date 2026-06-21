@@ -1,5 +1,5 @@
 {
-  "name": "@startupsaarthi/web",
+  "name": "@startupiq/web",
   "version": "1.0.0",
   "scripts": {
     "dev": "next dev",
@@ -8,8 +8,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@startupsaarthi/types": "workspace:*",
-    "@startupsaarthi/ui": "workspace:*",
+    "@startupiq/types": "workspace:*",
+    "@startupiq/ui": "workspace:*",
     "@tanstack/react-query": "^5.40.0",
     "clsx": "^2.1.1",
     "framer-motion": "^11.2.10",
@@ -19,11 +19,12 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "recharts": "^2.12.7",
+    "socket.io-client": "^4.8.3",
     "sonner": "^1.4.41",
     "tailwind-merge": "^2.3.0"
   },
   "devDependencies": {
-    "@startupsaarthi/config": "workspace:*",
+    "@startupiq/config": "workspace:*",
     "@tailwindcss/forms": "^0.5.11",
     "@types/node": "^20.12.12",
     "@types/react": "18.3.2",
