@@ -1,10 +1,8 @@
+"use client";
+
 import * as React from "react";
 import Link from "next/link";
-
-export const metadata = {
-  title: "Dashboard | StartupSaarthi AI",
-  description: "Your intelligence overview and recent validations.",
-};
+import { apiClient } from "@/lib/api-client";
 
 const mockReports = [
   {
@@ -72,6 +70,23 @@ const sectorVectors = [
 ];
 
 export default function DashboardPage() {
+  const [reports, setReports] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    async function load() {
+      try {
+        const data = await apiClient("/api/v1/reports");
+        setReports(data.data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
   return (
     <div className="bg-surface font-body text-on-surface antialiased min-h-screen flex selection:bg-primary-fixed selection:text-on-primary-fixed">
       {/* ── SideNavBar ───────────────────────────────────────────── */}
@@ -91,7 +106,7 @@ export default function DashboardPage() {
               Sovereign Analyst
             </span>
             <span className="text-xs text-slate-400 mt-1">
-              StartupSaarthi AI
+              startupIQ
             </span>
           </div>
         </div>
@@ -167,7 +182,7 @@ export default function DashboardPage() {
               Intelligence Overview
             </span>
             <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface">
-              Good morning, Founder
+              Good morning
             </h1>
           </div>
           <Link
@@ -189,7 +204,7 @@ export default function DashboardPage() {
             </span>
             <div className="flex items-baseline gap-2">
               <span className="font-label text-4xl text-on-surface font-bold">
-                142
+                {reports.length}
               </span>
               <span className="font-body text-xs text-secondary font-semibold">
                 +12 this month
@@ -256,32 +271,37 @@ export default function DashboardPage() {
                 </a>
               </div>
               <div className="flex flex-col gap-2">
-                {mockReports.map((report) => (
+                {loading ? (
+                  <p className="text-on-surface-variant p-4">Loading intelligence...</p>
+                ) : reports.length === 0 ? (
+                  <p className="text-on-surface-variant p-4">No reports generated yet. Initiate a new validation.</p>
+                ) : (
+                reports.map((report: any) => (
                   <Link
-                    key={report.initials}
-                    href={`/report/${report.initials.toLowerCase()}`}
+                    key={report.id}
+                    href={`/report/${report.id}`}
                     className="group flex items-center justify-between p-4 rounded-lg hover:bg-surface-container-lowest institutional-transition cursor-pointer"
                   >
                     <div className="flex items-center gap-6">
-                      <div className="w-12 h-12 rounded bg-surface-container-high flex items-center justify-center text-on-surface-variant font-headline font-bold">
-                        {report.initials}
+                      <div className="w-12 h-12 rounded bg-surface-container-high flex items-center justify-center text-on-surface-variant font-headline font-bold uppercase">
+                        {report.idea?.name ? report.idea.name.substring(0, 2) : "IQ"}
                       </div>
                       <div className="flex flex-col gap-1">
                         <span className="font-headline font-bold text-lg text-on-surface group-hover:text-primary-container institutional-transition">
-                          {report.name}
+                          {report.idea?.name || "Startup Idea"}
                         </span>
                         <span className="font-body text-xs text-on-surface-variant">
-                          Sector: {report.sector} • Evaluated{" "}
-                          {report.evaluated}
+                          Sector: {report.idea?.industry || "N/A"} • Evaluated{" "}
+                          {new Date(report.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-8">
                       <div className="flex flex-col items-end">
                         <span
-                          className={`font-label text-xl font-bold ${report.scoreColor}`}
+                          className={`font-label text-xl font-bold ${report.status === "COMPLETED" ? "text-secondary" : "text-on-surface-variant"}`}
                         >
-                          {report.score}
+                          {report.status === "COMPLETED" ? (report.data?.vcScore?.score || "N/A") : report.status}
                         </span>
                         <span className="font-body text-[10px] uppercase tracking-widest text-on-surface-variant">
                           Viability
@@ -292,7 +312,7 @@ export default function DashboardPage() {
                       </span>
                     </div>
                   </Link>
-                ))}
+                )))}
               </div>
             </section>
 
