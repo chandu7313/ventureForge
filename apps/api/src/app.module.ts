@@ -4,7 +4,6 @@ import { BullModule } from '@nestjs/bullmq';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
 import { CacheModule } from '@nestjs/cache-manager';
-import { redisStore } from 'cache-manager-redis-store';
 import { AppConfigModule } from './config/config.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './common/redis/redis.module';
@@ -20,12 +19,9 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
   imports: [
     AppConfigModule,
 
-    // Redis for cache-manager
-    CacheModule.registerAsync({
+    // In-memory cache for cache-manager
+    CacheModule.register({
       isGlobal: true,
-      useFactory: async () => ({
-        store: await redisStore({ url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}` }),
-      } as any),
     }),
 
     // BullMQ connection
