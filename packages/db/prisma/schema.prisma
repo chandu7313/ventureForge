@@ -67,9 +67,7 @@ model User {
   password     String
   name         String?
   avatarUrl    String?
-  plan         Plan     @default(FREE)
-  reportsUsed  Int      @default(0)
-  reportsLimit Int      @default(1)   // FREE=1, PRO=unlimited(-1), PREMIUM=unlimited(-1)
+  credits      Int      @default(1000)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -80,7 +78,6 @@ model User {
   usageLogs    UsageLog[]
 
   @@index([email])
-  @@index([plan])
   @@index([createdAt])
 }
 
@@ -141,6 +138,11 @@ model Report {
   tokensUsed       Int?    @default(0)
   errorMessage     String?
 
+  // Sharing
+  shareToken    String?   @unique
+  isPublic      Boolean   @default(false)
+  sharedAt      DateTime?
+
   deletedAt     DateTime?   // Soft delete
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -154,6 +156,7 @@ model Report {
   @@index([createdAt])
   @@index([userId, status])
   @@index([deletedAt])
+  @@index([shareToken])
 }
 
 model Comparison {
