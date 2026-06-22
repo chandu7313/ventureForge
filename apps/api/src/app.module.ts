@@ -4,6 +4,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
 import { CacheModule } from '@nestjs/cache-manager';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppConfigModule } from './config/config.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './common/redis/redis.module';
@@ -14,10 +15,20 @@ import { AiModule } from './modules/ai/ai.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { UsersModule } from './modules/users/users.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { MetricsModule } from './common/metrics/metrics.module';
+import { ToolsModule } from './modules/tools/tools.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
     AppConfigModule,
+    MetricsModule,
+    ToolsModule,
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 10,
+    }]),
+    ScheduleModule.forRoot(),
 
     // In-memory cache for cache-manager
     CacheModule.register({
