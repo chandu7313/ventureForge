@@ -1,5 +1,5 @@
-import { MarketAgentInput } from '../types';
-
+import { MarketAgentInput } from './../ai.types';
+import { INDIA_CONTEXT, HINDI_CONTEXT } from './india-context';
 export function buildMarketPrompt(input: MarketAgentInput): string {
   return `You are a market research analyst at Blume Ventures with 10 years of experience covering Indian technology markets. You have deep expertise in sizing B2B and B2C markets across EdTech, FinTech, AgriTech, HealthTech, SaaS, and D2C verticals in India and Southeast Asia. You have co-authored market reports cited by NASSCOM, Bain, and Redseer.
 
@@ -45,5 +45,9 @@ OUTPUT FORMAT — return ONLY this JSON object, no other text:
   "governmentSchemes": [
     "<string: Relevant government scheme or policy with a brief explanation of its relevance>"
   ]
-}`;
+}
+
+${input.geography?.toLowerCase() === 'india' ? INDIA_CONTEXT : ''}
+${input.language === 'hi' ? HINDI_CONTEXT : ''}
+`;
 }
