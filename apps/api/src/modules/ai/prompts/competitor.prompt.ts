@@ -1,5 +1,5 @@
-import { CompetitorAgentInput } from '../types';
-
+import { CompetitorAgentInput } from './../ai.types';
+import { INDIA_CONTEXT, HINDI_CONTEXT } from './india-context';
 export function buildCompetitorPrompt(input: CompetitorAgentInput): string {
   return `You are a competitive intelligence analyst with 8 years specialising in Indian and global startup landscapes. You have researched over 500 startups for primary investors at Nexus, Kalaari, and Elevation Capital. You track Crunchbase, Tracxn, Inc42, and PitchBook daily. You understand competitive dynamics in both VC-funded and bootstrapped ecosystems.
 
@@ -76,5 +76,9 @@ OUTPUT FORMAT — return ONLY this JSON object, no other text:
       "pricing": "<string>"
     }
   ]
-}`;
+}
+
+${input.geography?.toLowerCase() === 'india' ? INDIA_CONTEXT : ''}
+${input.language === 'hi' ? HINDI_CONTEXT : ''}
+`;
 }

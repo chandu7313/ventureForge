@@ -14,7 +14,7 @@ scrape_configs:
     static_configs:
       - targets: [localhost]
         labels:
-          app: startupsaarthi-api
+          app: startupiq-api
           environment: production
           __path__: /var/log/containers/ss_api*.log
 
@@ -42,7 +42,7 @@ scrape_configs:
     static_configs:
       - targets: [localhost]
         labels:
-          app: startupsaarthi-workers
+          app: startupiq-workers
           environment: production
           __path__: /var/log/containers/ss_workers*.log
     pipeline_stages:

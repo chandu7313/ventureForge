@@ -83,6 +83,7 @@ export class RedisService {
 /** Canonical cache key builders — single source of truth */
 export const CacheKeys = {
   report: (reportId: string) => `report:${reportId}`,
+  compare: (idA: string, idB: string) => `compare:${idA}:${idB}`,
   userReportCount: (userId: string) => `user:${userId}:report-count`,
   ideaDedup: (hash: string) => `idea:${hash}:report`,
   userPlan: (userId: string) => `user:${userId}:plan`,
@@ -91,6 +92,7 @@ export const CacheKeys = {
 /** Cache TTLs in seconds */
 export const CacheTTL = {
   REPORT: 60 * 60 * 24,      // 24 hours
+  COMPARE: 60 * 60,           // 1 hour
   IDEA_DEDUP: 60 * 60 * 24 * 7, // 7 days
   USER_PLAN: 60 * 60,         // 1 hour
 };

@@ -10,9 +10,18 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
+  // ── CORS (must be BEFORE helmet) ────────────────────────────────────
+  app.enableCors({
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-razorpay-signature'],
+  });
+
   // ── Security ───────────────────────────────────────────────────────────
   app.use(
     helmet({
+      crossOriginResourcePolicy: false,
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
@@ -23,13 +32,6 @@ async function bootstrap() {
       },
     }),
   );
-
-  app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001', process.env.FRONTEND_URL || ''],
-    credentials: true,
-    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-razorpay-signature'],
-  });
 
   // ── Global Pipes, Filters, Interceptors ────────────────────────────────
   app.useGlobalPipes(

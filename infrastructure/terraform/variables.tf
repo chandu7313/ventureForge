@@ -19,7 +19,7 @@ variable "aws_region" {
 variable "app_name" {
   description = "Application slug used in resource naming"
   type        = string
-  default     = "startupsaarthi"
+  default     = "startupiq"
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ variable "ec2_ami" {
 variable "key_pair_name" {
   description = "EC2 Key Pair name for SSH access"
   type        = string
-  default     = "startupsaarthi-keypair"
+  default     = "startupiq-keypair"
 }
 
 variable "asg_min_size" {
@@ -94,7 +94,7 @@ variable "asg_cpu_target" {
 variable "domain_name" {
   description = "Root domain name"
   type        = string
-  default     = "startupsaarthi.com"
+  default     = "startupiq.com"
 }
 
 variable "acm_certificate_arn" {
@@ -117,7 +117,7 @@ variable "db_instance_class" {
 variable "db_name" {
   description = "PostgreSQL database name"
   type        = string
-  default     = "startupsaarthi"
+  default     = "startupiq"
 }
 
 variable "db_username" {
@@ -154,5 +154,5 @@ variable "redis_node_type" {
 variable "s3_reports_bucket" {
   description = "S3 bucket name for report PDF exports"
   type        = string
-  default     = "startupsaarthi-reports"
+  default     = "startupiq-reports"
 }

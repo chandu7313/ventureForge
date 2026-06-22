@@ -1,5 +1,5 @@
-import { VcAgentInput } from '../types';
-
+import { VcAgentInput } from './../ai.types';
+import { INDIA_CONTEXT, HINDI_CONTEXT } from './india-context';
 export function buildVcPrompt(input: VcAgentInput): string {
   const marketSummary = JSON.stringify(input.marketData, null, 2);
   const competitorSummary = JSON.stringify(input.competitorData, null, 2);
@@ -62,5 +62,9 @@ OUTPUT FORMAT — return ONLY this JSON object, no other text:
   "verdict": "<'Fund' | 'Pass' | 'Watch'>",
   "monetization": "<string: 2-3 sentence recommendation on the optimal revenue model for this product in the Indian market>",
   "fundingRecommendation": "<string: Recommended seed round size (₹ and $), expected dilution %, and top 3 use-of-funds priorities>"
-}`;
+}
+
+${input.geography?.toLowerCase() === 'india' ? INDIA_CONTEXT : ''}
+${input.language === 'hi' ? HINDI_CONTEXT : ''}
+`;
 }

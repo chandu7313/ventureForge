@@ -1,5 +1,5 @@
-import { ProductAgentInput } from '../types';
-
+import { ProductAgentInput } from './../ai.types';
+import { INDIA_CONTEXT, HINDI_CONTEXT } from './india-context';
 export function buildProductPrompt(input: ProductAgentInput): string {
   return `You are a Senior Product Manager with 0→1 experience at three of India's fastest-growing startups — Razorpay (B2B payments infrastructure), Zepto (10-min grocery delivery), and CRED (fintech rewards). You have shipped over 20 major product features with measurable impact on retention and revenue. You are obsessed with Indian user behaviour, low-bandwidth experiences, vernacular UX, and channel-market fit.
 
@@ -78,5 +78,9 @@ OUTPUT FORMAT — return ONLY this JSON object, no other text:
     { "category": "<string>", "description": "<string>", "severity": "<'High' | 'Medium' | 'Low'>", "mitigation": "<string>" }
   ],
   "recommendedStack": ["<string: Technology 1>", "<string: Technology 2>", "<string: Technology 3>", "<string: Technology 4>", "<string: Technology 5>"]
-}`;
+}
+
+${input.geography?.toLowerCase() === 'india' ? INDIA_CONTEXT : ''}
+${input.language === 'hi' ? HINDI_CONTEXT : ''}
+`;
 }

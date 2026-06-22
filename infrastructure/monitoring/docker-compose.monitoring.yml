@@ -1,125 +1,89 @@
-version: "3.9"
-
-# Observability stack — add to main docker-compose with:
-# docker compose -f docker-compose.yml -f infrastructure/monitoring/docker-compose.monitoring.yml up -d
+version: '3.8'
 
 services:
   prometheus:
-    image: prom/prometheus:v2.52.0
-    container_name: ss_prometheus
+    image: prom/prometheus:v2.51.0
+    container_name: prometheus
     restart: unless-stopped
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=30d"
-      - "--web.enable-lifecycle"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
-      - prometheus_data:/prometheus
     ports:
       - "9090:9090"
-    networks: [internal]
-
-  alertmanager:
-    image: prom/alertmanager:v0.27.0
-    container_name: ss_alertmanager
-    restart: unless-stopped
-    command:
-      - "--config.file=/etc/alertmanager/alertmanager.yml"
     volumes:
-      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-    ports:
-      - "9093:9093"
-    networks: [internal]
-    environment:
-      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    networks:
+      - internal_network
 
   grafana:
     image: grafana/grafana:10.4.0
-    container_name: ss_grafana
+    container_name: grafana
     restart: unless-stopped
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-changeme}
-      GF_FEATURE_TOGGLES_ENABLE: "tempoSearch,tempoBackendSearch"
-      GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-piechart-panel"
-    volumes:
-      - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - grafana_data:/var/lib/grafana
     ports:
-      - "3005:3000"
-    networks: [internal]
-    depends_on: [prometheus, loki]
+      - "3002:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Change in prod
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - internal_network
+    depends_on:
+      - prometheus
+      - loki
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - internal_network
 
   loki:
-    image: grafana/loki:2.9.8
-    container_name: ss_loki
+    image: grafana/loki:2.9.4
+    container_name: loki
     restart: unless-stopped
-    command: -config.file=/etc/loki/local-config.yaml
     ports:
       - "3100:3100"
     volumes:
       - loki_data:/loki
-    networks: [internal]
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - internal_network
 
   promtail:
-    image: grafana/promtail:2.9.8
-    container_name: ss_promtail
+    image: grafana/promtail:2.9.4
+    container_name: promtail
     restart: unless-stopped
     volumes:
-      - ./promtail.yml:/etc/promtail/config.yml:ro
       - /var/log:/var/log:ro
-      - /var/lib/docker/containers:/var/log/containers:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     command: -config.file=/etc/promtail/config.yml
-    networks: [internal]
-    depends_on: [loki]
-
-  node-exporter:
-    image: prom/node-exporter:v1.8.0
-    container_name: ss_node_exporter
-    restart: unless-stopped
-    command:
-      - "--path.procfs=/host/proc"
-      - "--path.sysfs=/host/sys"
-      - "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    ports:
-      - "9100:9100"
-    networks: [internal]
-
-  redis-exporter:
-    image: oliver006/redis_exporter:v1.59.0
-    container_name: ss_redis_exporter
-    restart: unless-stopped
-    environment:
-      REDIS_ADDR: redis://redis:6379
-    ports:
-      - "9121:9121"
-    networks: [internal]
-    depends_on: [redis]
-
-  nginx-exporter:
-    image: nginx/nginx-prometheus-exporter:0.11.0
-    container_name: ss_nginx_exporter
-    restart: unless-stopped
-    command:
-      - "-nginx.scrape-uri=http://nginx/nginx_status"
-    ports:
-      - "9113:9113"
-    networks: [internal]
-    depends_on: [nginx]
+    networks:
+      - internal_network
+    depends_on:
+      - loki
 
 networks:
-  internal:
+  internal_network:
     external: true
-    name: startup-validator_internal
+    name: startup-validator_internal_network # Use the actual network name created by the main compose file
 
 volumes:
   prometheus_data:
   grafana_data:
+  alertmanager_data:
   loki_data:

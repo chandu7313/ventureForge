@@ -20,9 +20,9 @@ interface FetchOptions extends RequestInit {
 export async function apiClient<T = any>(endpoint: string, options: FetchOptions = {}): Promise<T> {
   const token = getCookie("token");
   
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...options.headers,
+    ...(options.headers as Record<string, string>),
   };
 
   if (token) {
@@ -44,13 +44,17 @@ export async function apiClient<T = any>(endpoint: string, options: FetchOptions
   
   if (!response.ok) {
     let errorMsg = `API Error: ${response.status} ${response.statusText}`;
+    let errorData = null;
     try {
-      const errorData = await response.json();
+      errorData = await response.json();
       errorMsg = errorData.message || errorMsg;
     } catch (e) {
       // Not JSON
     }
-    throw new Error(errorMsg);
+    const error: any = new Error(errorMsg);
+    error.status = response.status;
+    error.data = errorData;
+    throw error;
   }
 
   // Handle 204 No Content

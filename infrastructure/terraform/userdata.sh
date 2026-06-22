@@ -2,7 +2,7 @@
 set -euo pipefail
 exec > >(tee /var/log/user-data.log) 2>&1
 
-echo "▶️  StartupSaarthi bootstrap — $(date)"
+echo "▶️  startupIQ bootstrap — $(date)"
 
 # ── System updates ───────────────────────────────────────────
 dnf update -y
@@ -38,8 +38,8 @@ fetch_secret() {
     --output text
 }
 
-mkdir -p /opt/startupsaarthi
-cat > /opt/startupsaarthi/.env <<EOF
+mkdir -p /opt/startupiq
+cat > /opt/startupiq/.env <<EOF
 NODE_ENV=production
 DATABASE_URL=$(fetch_secret database_url)
 REDIS_HOST=$(fetch_secret redis_host)
@@ -57,7 +57,7 @@ ECR_REGISTRY=$ECR_REGISTRY
 EOF
 
 # ── Pull and start services ───────────────────────────────────
-cd /opt/startupsaarthi
+cd /opt/startupiq
 
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d --remove-orphans
