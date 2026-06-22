@@ -1,10 +1,10 @@
-# StartupSaarthi AI - System Architecture
+# startupIQ AI - System Architecture
 
-Welcome to the **StartupSaarthi AI** codebase. This document outlines the high-level architecture, directory structures, and design patterns used across the system. This project is built to production-grade standards, focusing on maintainability, scalability, and robust domain separation.
+Welcome to the **startupIQ AI** codebase. This document outlines the high-level architecture, directory structures, and design patterns used across the system. This project is built to production-grade standards, focusing on maintainability, scalability, and robust domain separation.
 
 ## 1. High-Level Architecture
 
-StartupSaarthi operates as a multi-agent AI orchestration platform. It is structured as a **Turborepo** Monorepo containing two main applications:
+startupIQ operates as a multi-agent AI orchestration platform. It is structured as a **Turborepo** Monorepo containing two main applications:
 - **Web (`apps/web`)**: A Next.js (App Router) frontend providing the user interface, dashboard, and marketing pages.
 - **API (`apps/api`)**: A NestJS backend that handles authentication, database interactions, and the heavy-lifting of AI orchestration via asynchronous job queues.
 
