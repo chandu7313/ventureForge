@@ -35,8 +35,10 @@ export function useReportSocket(reportId?: string) {
     setState(prev => ({ ...prev, status: 'CONNECTING' }));
 
     const newSocket = io(SOCKET_URL, {
-      transports: ["websocket", "polling"],
+      transports: ["polling", "websocket"],
       auth: { token },
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
     });
 
     newSocket.on("connect", () => {
