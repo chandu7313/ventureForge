@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Setting up Let's Encrypt SSL certificates for StartupSaarthi AI..."
+echo "Setting up Let's Encrypt SSL certificates for StartupIQ AI..."
 
 # Ensure we're running as root
 if [ "$EUID" -ne 0 ]; then 
@@ -15,11 +15,11 @@ apt-get install -y certbot python3-certbot-nginx
 
 # Obtain certificates
 certbot --nginx \
-  -d startupsaarthi.in \
-  -d www.startupsaarthi.in \
+  -d startupiq.in \
+  -d www.startupiq.in \
   --non-interactive \
   --agree-tos \
-  -m admin@startupsaarthi.in \
+  -m admin@startupiq.in \
   --redirect
 
 # Setup auto-renewal cron job if it doesn't exist

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Bootstrapping StartupSaarthi EC2 Instance (Ubuntu 22.04)..."
+echo "Bootstrapping StartupIQ EC2 Instance (Ubuntu 22.04)..."
 
 # Ensure we're running as root
 if [ "$EUID" -ne 0 ]; then 
@@ -41,9 +41,9 @@ unzip awscliv2.zip
 rm -rf aws awscliv2.zip
 
 # Create config directory for .env
-mkdir -p /etc/startupsaarthi
-chmod 700 /etc/startupsaarthi
-chown ubuntu:ubuntu /etc/startupsaarthi
+mkdir -p /etc/startupiq
+chmod 700 /etc/startupiq
+chown ubuntu:ubuntu /etc/startupiq
 
 # Configure UFW Firewall
 ufw default deny incoming
@@ -55,5 +55,5 @@ ufw --force enable
 
 echo "EC2 Bootstrap Complete! Next steps:"
 echo "1. Run 'aws configure' as ubuntu user."
-echo "2. Place your production .env file in /etc/startupsaarthi/.env"
+echo "2. Place your production .env file in /etc/startupiq/.env"
 echo "3. Run deployment scripts."

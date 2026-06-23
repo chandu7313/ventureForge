@@ -81,7 +81,7 @@ function bootstrap() {
                     app.useGlobalFilters(new global_exception_filter_1.GlobalExceptionFilter());
                     app.useGlobalInterceptors(new logging_interceptor_1.LoggingInterceptor());
                     swaggerConfig = new swagger_1.DocumentBuilder()
-                        .setTitle('StartupSaarthi AI — Backend API')
+                        .setTitle('StartupIQ AI — Backend API')
                         .setDescription('Multi-agent AI startup validator for Indian founders. ' +
                         'Authenticate with a Clerk JWT Bearer token.')
                         .setVersion('1.0')

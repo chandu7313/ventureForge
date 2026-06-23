@@ -15,7 +15,7 @@ AWS_REGION=${AWS_REGION:-"ap-south-1"}
 ECR_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
 
 # Assume we are already SSH'd into the target machine or this is running natively on the EC2
-cd /opt/startupsaarthi
+cd /opt/startupiq
 
 echo "1. Pulling latest images from ECR..."
 docker-compose -f docker-compose.prod.yml pull

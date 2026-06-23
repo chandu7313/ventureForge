@@ -2,14 +2,14 @@ version: '3.8'
 
 services:
   web:
-    image: ${AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/startupsaarthi-web:latest
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/startupiq-web:latest
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
     env_file:
-      - /etc/startupsaarthi/.env
+      - /etc/startupiq/.env
     deploy:
       resources:
         limits:
@@ -24,14 +24,14 @@ services:
       start_period: 40s
 
   api:
-    image: ${AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/startupsaarthi-api:latest
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/startupiq-api:latest
     restart: unless-stopped
     ports:
       - "3001:3001"
     environment:
       - NODE_ENV=production
     env_file:
-      - /etc/startupsaarthi/.env
+      - /etc/startupiq/.env
     deploy:
       resources:
         limits:
@@ -46,13 +46,13 @@ services:
       start_period: 40s
 
   workers:
-    image: ${AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/startupsaarthi-api:latest
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/startupiq-api:latest
     command: ["node", "dist/main.js", "--worker"] # Example worker command
     restart: unless-stopped
     environment:
       - NODE_ENV=production
     env_file:
-      - /etc/startupsaarthi/.env
+      - /etc/startupiq/.env
     deploy:
       resources:
         limits:
