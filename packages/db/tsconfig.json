@@ -1,5 +1,5 @@
 {
-  "extends": "@startupiq/config/tsconfig.node.json",
+  "extends": "@ventureforge/config/tsconfig.node.json",
   "compilerOptions": {
     "baseUrl": "./",
     "paths": {
