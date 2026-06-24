@@ -1,5 +1,5 @@
 {
-  "name": "@startupiq/web",
+  "name": "@ventureforge/web",
   "version": "1.0.0",
   "scripts": {
     "dev": "next dev -p 3000",
@@ -8,8 +8,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@startupiq/types": "workspace:*",
-    "@startupiq/ui": "workspace:*",
+    "@ventureforge/types": "workspace:*",
+    "@ventureforge/ui": "workspace:*",
     "@tanstack/react-query": "^5.40.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.0",
-    "@startupiq/config": "workspace:*",
+    "@ventureforge/config": "workspace:*",
     "@tailwindcss/forms": "^0.5.11",
     "@types/node": "^20.12.12",
     "@types/react": "18.3.2",

@@ -18,7 +18,7 @@ COPY apps/web/package.json ./apps/web/
 COPY apps/api/package.json ./apps/api/
 
 # Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod --filter @startupiq/web...
+RUN pnpm install --frozen-lockfile --prod --filter @ventureforge/web...
 
 # ─────────────────────────────────────────────────────────────
 # Stage 2: Build the Next.js app
@@ -46,11 +46,11 @@ ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
 # Generate Prisma client if types need it
-RUN pnpm --filter @startupiq/db exec prisma generate || true
+RUN pnpm --filter @ventureforge/db exec prisma generate || true
 
 # Build with standalone output (critical for minimal final image)
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm --filter @startupiq/web exec next build
+RUN pnpm --filter @ventureforge/web exec next build
 
 # ─────────────────────────────────────────────────────────────
 # Stage 3: Production runner (~120MB)

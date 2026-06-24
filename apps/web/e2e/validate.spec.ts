@@ -34,6 +34,6 @@ test.describe('Idea Validation Wizard', () => {
 
     // Verify redirect and processing state
     await validatePage.expectRedirectToReport();
-    await expect(page.locator('text=Generating your comprehensive StartupIQ report')).toBeVisible();
+    await expect(page.locator('text=Generating your comprehensive VentureForge report')).toBeVisible();
   });
 });
