@@ -21,12 +21,12 @@ services:
   # ─── PostgreSQL ───────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: ss_postgres
+    container_name: vf_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-startupiq}
+      POSTGRES_DB: ${POSTGRES_DB:-ventureforge}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -41,7 +41,7 @@ services:
   # ─── Redis ───────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: ss_redis
+    container_name: vf_redis
     restart: unless-stopped
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
@@ -60,7 +60,7 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: ss_api
+    container_name: vf_api
     restart: unless-stopped
     env_file: apps/api/.env
     environment:
@@ -82,14 +82,12 @@ services:
       retries: 3
       start_period: 20s
 
-
-
   # ─── Next.js Web ─────────────────────────────────────────
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-    container_name: ss_web
+    container_name: vf_web
     restart: unless-stopped
     env_file: apps/web/.env.local
     environment:
@@ -102,7 +100,7 @@ services:
   # ─── Nginx (only service exposed externally) ──────────────
   nginx:
     image: nginx:1.25-alpine
-    container_name: ss_nginx
+    container_name: vf_nginx
     restart: unless-stopped
     ports:
       - "80:80"
