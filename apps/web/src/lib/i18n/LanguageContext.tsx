@@ -19,7 +19,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Load from local storage on mount
-    const saved = localStorage.getItem('startupiq_lang');
+    const saved = localStorage.getItem('ventureforge_lang');
     if (saved === 'hi' || saved === 'en') {
       setLanguageState(saved);
     }
@@ -27,7 +27,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('startupiq_lang', lang);
+    localStorage.setItem('ventureforge_lang', lang);
   };
 
   const t = (key: TranslationKey): string => {
