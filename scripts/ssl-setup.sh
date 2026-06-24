@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Setting up Let's Encrypt SSL certificates for StartupIQ AI..."
+echo "Setting up Let's Encrypt SSL certificates for VentureForge AI..."
 
 # Ensure we're running as root
 if [ "$EUID" -ne 0 ]; then 
@@ -15,11 +15,11 @@ apt-get install -y certbot python3-certbot-nginx
 
 # Obtain certificates
 certbot --nginx \
-  -d startupiq.in \
-  -d www.startupiq.in \
+  -d ventureforge.in \
+  -d www.ventureforge.in \
   --non-interactive \
   --agree-tos \
-  -m admin@startupiq.in \
+  -m admin@ventureforge.in \
   --redirect
 
 # Setup auto-renewal cron job if it doesn't exist
