@@ -17,7 +17,7 @@ export const en = {
   'wizard.next': 'Next Step',
   'wizard.back': 'Back',
   'wizard.submit': 'Generate full report',
-  'wizard.generating': 'Generating your comprehensive StartupIQ report',
+  'wizard.generating': 'Generating your comprehensive VentureForge report',
 
   // Wizard Fields
   'field.startupName': 'Startup Name',
