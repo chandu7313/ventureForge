@@ -19,7 +19,7 @@ export const hi: Record<TranslationKey, string> = {
   'wizard.next': 'अगला कदम (Next Step)',
   'wizard.back': 'पीछे (Back)',
   'wizard.submit': 'पूरी रिपोर्ट बनाएँ',
-  'wizard.generating': 'आपकी व्यापक StartupIQ रिपोर्ट बन रही है...',
+  'wizard.generating': 'आपकी व्यापक VentureForge रिपोर्ट बन रही है...',
 
   // Wizard Fields
   'field.startupName': 'स्टार्टअप का नाम',
