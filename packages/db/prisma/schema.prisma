@@ -11,6 +11,14 @@ datasource db {
 // ENUMS
 // ─────────────────────────────────────────────
 
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+// Legacy plan enum kept for backward compatibility with existing payments
 enum Plan {
   FREE
   PRO
@@ -22,6 +30,11 @@ enum ReportStatus {
   PROCESSING
   DONE
   FAILED
+}
+
+enum ReportType {
+  VALIDATION      // Layer 1 — basic idea validation
+  BUSINESS_DNA    // Full Business DNA report (all 27 modules)
 }
 
 enum Industry {
@@ -39,6 +52,12 @@ enum Industry {
   CLIMATETECH
   DEEPTECH
   CREATOR_ECONOMY
+  FOOD
+  MANUFACTURING
+  RETAIL
+  EXPORT
+  SERVICES
+  REAL_ESTATE
   OTHER
 }
 
@@ -49,6 +68,14 @@ enum Geography {
   SOUTH_ASIA
   SOUTHEAST_ASIA
   GLOBAL
+}
+
+enum BusinessStructure {
+  SOLE_PROPRIETORSHIP
+  PARTNERSHIP
+  LLP
+  PRIVATE_LIMITED
+  OPC
 }
 
 enum Verdict {
@@ -62,23 +89,29 @@ enum Verdict {
 // ─────────────────────────────────────────────
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  password     String
-  name         String?
-  avatarUrl    String?
-  credits      Int      @default(1000)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                    String             @id @default(cuid())
+  email                 String             @unique
+  password              String
+  name                  String?
+  avatarUrl             String?
+  credits               Int                @default(1000)
+  plan                  SubscriptionPlan   @default(FREE)
+  reportsThisMonth      Int                @default(0)
+  reportsResetAt        DateTime?
 
-  ideas        Idea[]
-  reports      Report[]
-  comparisons  Comparison[]
-  payments     Payment[]
-  usageLogs    UsageLog[]
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  ideas                 Idea[]
+  reports               Report[]
+  comparisons           Comparison[]
+  payments              Payment[]
+  usageLogs             UsageLog[]
+  subscriptions         Subscription[]
 
   @@index([email])
   @@index([createdAt])
+  @@index([plan])
 }
 
 model Idea {
@@ -95,6 +128,11 @@ model Idea {
   teamSize     Int        @default(1)
   budget       String     @default("< ₹5L")
   primarySkill String?    // e.g. "Engineering", "Sales", "Design"
+
+  // VentureForge AI — expanded fields for Business DNA
+  country      String     @default("India")
+  state        String?    // Indian state for compliance mapping
+  businessType String?    // product, service, manufacturing, trading, export
 
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
@@ -114,31 +152,58 @@ model Report {
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   status        ReportStatus @default(PENDING)
+  reportType    ReportType   @default(BUSINESS_DNA)
 
-  // Composite scores (0–100)
-  ideaScore        Int?
-  marketScore      Int?
-  moatScore        Int?
-  riskScore        Int?
-  investorScore    Int?
-  verdict          Verdict?
+  // ─── AI Startup Score™ (6-dimension proprietary scoring) ───
+  ideaScore           Int?    // Overall idea clarity (0–100)
+  marketScore         Int?    // Market potential (0–100)
+  moatScore           Int?    // Competitive advantage / scalability (0–100)
+  riskScore           Int?    // Risk assessment (0–100, higher = safer)
+  investorScore       Int?    // Investor attractiveness (0–100)
+  revenueScore        Int?    // Revenue feasibility (0–100)
+  overallScore        Int?    // Overall success probability (0–100)
+  verdict             Verdict?
 
-  // AI-generated JSON payloads (one per agent + synthesis)
-  marketData       Json?   // Market Analyst output
-  competitorData   Json?   // Competitor Scout output
-  riskData         Json?   // Risk items from Product Agent
-  monetizationData Json?   // Monetization from VC Agent
-  mvpData          Json?   // MVP timeline from Product Agent
-  gtmData          Json?   // GTM channels from Product Agent
-  investorData     Json?   // VC dimensions from VC Agent
-  pitchData        Json?   // Pitch slides from VC Agent
+  // ─── Layer 1: Validation Intelligence (Agent outputs) ───
+  marketData          Json?   // Market Analyst: TAM/SAM/SOM, ICP, tailwinds
+  competitorData      Json?   // Competitor Scout: competitors, SWOT, positioning
+  riskData            Json?   // Risk Intelligence: 5-category risk matrix
+  successPrediction   Json?   // Success Predictor: survival, funding, growth probability
 
-  // Operational metadata
-  generationTimeMs Int?
-  tokensUsed       Int?    @default(0)
-  errorMessage     String?
+  // ─── Layer 2: Business Formation Engine ───
+  businessFormationData   Json?   // Legal structure recommendation, pros/cons
+  complianceData          Json?   // Registration & compliance checklist
+  taxPlanData             Json?   // Tax & accounting planner
+  bankingSetupData        Json?   // Business banking recommendations
+  productServiceData      Json?   // Product/service planner
+  infrastructureData      Json?   // Infrastructure requirements & costs
+  teamData                Json?   // Team Builder: org chart, hiring roadmap
+  technologyData          Json?   // Technology stack planner
+  brandingData            Json?   // Website & branding generator
+  supplierData            Json?   // Supplier & vendor intelligence
+  sopData                 Json?   // SOP Generator output
+  fundingData             Json?   // Funding & capital planner
+  financialData           Json?   // Financial projections: P&L, cash flow
 
-  // Sharing
+  // ─── Layer 2 continued: GTM, MVP, Pitch ───
+  gtmData             Json?   // Go-to-market planner
+  mvpData             Json?   // MVP Builder output
+  pitchDeckData       Json?   // Investor-ready pitch deck
+  investorMatchData   Json?   // Investor match engine
+  monetizationData    Json?   // Monetization strategy from VC Agent
+  investorData        Json?   // VC dimensions from VC Agent
+  pitchData           Json?   // Legacy pitch slides field
+
+  // ─── Layer 3: Growth & Monitoring ───
+  digitalTwinData     Json?   // Startup Digital Twin simulation
+  launchChecklistData Json?   // Step-by-step launch checklist
+
+  // ─── Operational metadata ───
+  generationTimeMs    Int?
+  tokensUsed          Int?    @default(0)
+  errorMessage        String?
+
+  // ─── Sharing ───
   shareToken    String?   @unique
   isPublic      Boolean   @default(false)
   sharedAt      DateTime?
@@ -149,6 +214,7 @@ model Report {
 
   comparisonsAsA Comparison[] @relation("ReportA")
   comparisonsAsB Comparison[] @relation("ReportB")
+  chatMessages   ChatMessage[]
 
   @@index([userId])
   @@index([ideaId])
@@ -157,6 +223,7 @@ model Report {
   @@index([userId, status])
   @@index([deletedAt])
   @@index([shareToken])
+  @@index([reportType])
 }
 
 model Comparison {
@@ -198,6 +265,44 @@ model Payment {
   @@index([userId])
   @@index([razorpayOrderId])
   @@index([status])
+  @@index([createdAt])
+}
+
+model Subscription {
+  id              String           @id @default(cuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  plan            SubscriptionPlan
+  razorpaySubId   String?          @unique
+  amount          Int              // Amount in paise (INR)
+  currency        String           @default("INR")
+  isActive        Boolean          @default(true)
+
+  startsAt        DateTime         @default(now())
+  expiresAt       DateTime
+  cancelledAt     DateTime?
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([razorpaySubId])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  reportId  String
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  role      String   // "user" | "assistant"
+  content   String   @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
   @@index([createdAt])
 }
 
