@@ -1,5 +1,5 @@
 {
-  "extends": "@startupiq/config/tsconfig.react.json",
+  "extends": "@ventureforge/config/tsconfig.react.json",
   "compilerOptions": {
     "baseUrl": "./",
     "paths": {

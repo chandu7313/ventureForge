@@ -1,5 +1,5 @@
 {
-  "name": "@startupiq/ui",
+  "name": "@ventureforge/ui",
   "version": "1.0.0",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -13,7 +13,7 @@
     "tailwind-merge": "^2.3.0"
   },
   "devDependencies": {
-    "@startupiq/config": "workspace:*",
+    "@ventureforge/config": "workspace:*",
     "@types/react": "18.3.2",
     "@types/react-dom": "^19.2.3",
     "typescript": "5.3.3"
