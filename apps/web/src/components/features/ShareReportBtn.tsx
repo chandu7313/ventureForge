@@ -14,8 +14,8 @@ export const ShareReportBtn: React.FC<ShareReportBtnProps> = ({ reportId, initia
   const [token, setToken] = useState<string | null>(initialToken || null);
   const [copied, setCopied] = useState(false);
 
-  const shareUrl = token ? `https://startupiq.in/share/${token}` : '';
-  const shareText = `I validated my startup idea using startupIQ. Check it out: ${shareUrl}`;
+  const shareUrl = token ? `https://ventureforge.in/share/${token}` : '';
+  const shareText = `I validated my startup idea using VentureForge AI. Check it out: ${shareUrl}`;
 
   const handleShare = async () => {
     if (token) return; // Already shared

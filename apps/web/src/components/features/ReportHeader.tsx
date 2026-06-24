@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Download, Share2 } from "lucide-react";
-import { IdeaStrengthBadge, type IdeaStrength } from "@startupiq/ui";
+import { IdeaStrengthBadge, type IdeaStrength } from "@ventureforge/ui";
 import { toast } from "sonner";
 
 export interface ReportHeaderProps {

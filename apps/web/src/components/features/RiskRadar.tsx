@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ShieldAlert } from "lucide-react";
-import { cn } from "@startupiq/ui";
+import { cn } from "@ventureforge/ui";
 
 export type RiskSeverity = "High" | "Medium" | "Low";
 
