@@ -16,6 +16,7 @@
     "@bull-board/express": "^5.19.0",
     "@bull-board/nestjs": "^5.19.0",
     "@clerk/clerk-sdk-node": "^5.0.0",
+    "@google/generative-ai": "^0.24.1",
     "@nestjs/bullmq": "^10.1.1",
     "@nestjs/cache-manager": "^2.2.2",
     "@nestjs/common": "^10.0.0",
@@ -53,11 +54,11 @@
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
-    "@ventureforge/config": "workspace:*",
     "@types/express": "^5.0.6",
     "@types/node": "^20.12.12",
     "@types/react": "18.3.2",
     "@types/whois-json": "^2.0.4",
+    "@ventureforge/config": "workspace:*",
     "react": "18.3.1",
     "typescript": "5.3.3"
   }
