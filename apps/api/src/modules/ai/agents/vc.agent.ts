@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import Anthropic from '@anthropic-ai/sdk';
-import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
-import { VcAgentInput, VcAgentOutput } from '../types';
+import { VcAgentInput, VcAgentOutput } from '../ai.types';
+import { GeminiProvider } from '../providers/gemini.provider';
 import { buildVcPrompt } from '../prompts/vc.prompt';
 
 const InvestorDimensionSchema = z.object({
@@ -24,62 +23,57 @@ const VcOutputSchema = z.object({
   verdict: z.enum(['Fund', 'Pass', 'Watch']),
   monetization: z.string(),
   fundingRecommendation: z.string(),
+  investorMatch: z.object({
+    vcFunds: z.array(z.object({
+      name: z.string(),
+      sector: z.string(),
+      stage: z.string(),
+      ticketSize: z.string(),
+    })),
+    angelInvestors: z.array(z.object({
+      name: z.string(),
+      sector: z.string(),
+      portfolio: z.string(),
+    })),
+    fundingProbabilityScore: z.number(),
+  }).optional().default({ vcFunds: [], angelInvestors: [], fundingProbabilityScore: 0 }),
+  executiveSummary: z.object({
+    overview: z.string(),
+    opportunity: z.string(),
+    solution: z.string(),
+    marketSize: z.string(),
+    competitiveAdvantage: z.string(),
+    financialHighlights: z.string(),
+    askAmount: z.string().optional(),
+  }).optional(),
 });
 
+/**
+ * VcAgent — VC / Synthesis Agent powered by Gemini.
+ *
+ * Takes all Layer 1 outputs and synthesizes them into an investor
+ * score, executive summary, pitch deck, and verdict.
+ */
 @Injectable()
 export class VcAgent {
   private readonly logger = new Logger(VcAgent.name);
-  private readonly client: Anthropic;
-  private readonly MODEL = 'claude-3-5-sonnet-20241022';
 
-  constructor(private configService: ConfigService) {
-    this.client = new Anthropic({
-      apiKey: this.configService.get<string>('ANTHROPIC_API_KEY'),
-    });
-  }
+  constructor(private readonly gemini: GeminiProvider) {}
 
   async run(input: VcAgentInput): Promise<VcAgentOutput> {
-    let prompt = buildVcPrompt(input);
     this.logger.log(`[VcAgent] Evaluating investment potential...`);
 
-    const maxAttempts = 3;
-    let lastError: Error | null = null;
-    const startTime = Date.now();
+    const prompt = buildVcPrompt(input);
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const response = await this.client.messages.create({
-          model: this.MODEL,
-          max_tokens: 3072,
-          messages: [{ role: 'user', content: prompt }],
-        });
+    const response = await this.gemini.generateStructuredJson(prompt, VcOutputSchema, {
+      maxTokens: 8192,
+      temperature: 0.4, // Lower temperature for more analytical synthesis
+    });
 
-        const rawText = (response.content[0] as Anthropic.TextBlock).text;
-        
-        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-        const jsonStr = jsonMatch ? jsonMatch[0] : rawText;
+    this.logger.log(
+      `[VcAgent] SUCCESS. Verdict: ${response.data.verdict}. Score: ${response.data.investorScore}. Duration: ${response.durationMs}ms`,
+    );
 
-        const parsed = JSON.parse(jsonStr);
-        const validated = VcOutputSchema.parse(parsed);
-
-        const duration = Date.now() - startTime;
-        this.logger.log(
-          `[VcAgent] SUCCESS (Attempt ${attempt}/${maxAttempts}). Duration: ${duration}ms. Input tokens: ${response.usage.input_tokens}, Output tokens: ${response.usage.output_tokens}`,
-        );
-
-        return validated as VcAgentOutput;
-      } catch (err) {
-        lastError = err as Error;
-        this.logger.warn(`[VcAgent] Validation/Parse failed on attempt ${attempt}. Error: ${lastError.message}`);
-        
-        if (attempt < maxAttempts) {
-          prompt += '\n\nIMPORTANT: You previously returned invalid JSON or it did not match the required schema. You MUST return ONLY the raw JSON object, no other text, and strictly follow the requested structure.';
-          await new Promise(res => setTimeout(res, 1000 * attempt));
-        }
-      }
-    }
-
-    this.logger.error(`[VcAgent] ALL ATTEMPTS FAILED for VC evaluation.`);
-    throw new Error(`VcAgent failed to generate valid JSON after ${maxAttempts} attempts. Last error: ${lastError?.message}`);
+    return response.data as VcAgentOutput;
   }
 }
