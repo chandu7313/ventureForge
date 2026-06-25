@@ -75,15 +75,15 @@ export class ReportWorker extends WorkerHost {
         Pass: Verdict.PASS,
       };
 
-      const marketScoreRaw = result.market.sam?.inrCr
-        ? Math.min(100, Math.round((result.market.sam.inrCr / 50000) * 100))
+      const marketScoreRaw = result.market.sam?.value
+        ? Math.min(100, Math.round((result.market.sam.value / 50000) * 100))
         : 70;
 
       await this.reportRepo.updateStatus(data.reportId, ReportStatus.DONE, {
-        ideaScore: Math.round((result.vc.investorScore + marketScoreRaw) / 2),
+        ideaScore: result.opportunityScore.score,
         marketScore: marketScoreRaw,
-        moatScore: result.vc.dimensions?.find(d => d.name === 'Defensibility')?.score
-          ? Math.round(result.vc.dimensions.find(d => d.name === 'Defensibility')!.score * 10)
+        moatScore: result.opportunityScore.breakdown?.find(d => d.dimension.includes('Moat') || d.dimension.includes('Compet'))?.score
+          ? Math.round(result.opportunityScore.breakdown.find(d => d.dimension.includes('Moat') || d.dimension.includes('Compet'))!.score)
           : null,
         riskScore: result.product.risks?.filter(r => r.severity === 'High').length
           ? Math.max(0, 100 - result.product.risks.filter(r => r.severity === 'High').length * 20)
@@ -101,15 +101,22 @@ export class ReportWorker extends WorkerHost {
         gtmData: result.product.gtm as any,
         investorData: result.vc.dimensions as any,
         pitchData: result.vc.pitch as any,
+        
         // New VentureForge AI fields
         businessFormationData: result.businessFormation as any,
         complianceData: result.compliance as any,
         financialData: result.financial as any,
-        sopData: result.operations as any,
+        sopData: result.operations.sops as any,
         teamData: result.operations.teamPlan as any,
         technologyData: result.operations.technologyStack as any,
         fundingData: result.financial.fundingOptions as any,
         launchChecklistData: result.operations.launchChecklist as any,
+        
+        // Visualizations & Synthesis
+        diagramData: result.diagrams as any,
+        chartData: result.charts as any,
+        aiRecommendations: result.aiRecommendations as any,
+        
         generationTimeMs,
       });
 
