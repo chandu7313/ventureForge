@@ -8,6 +8,9 @@ import { ReportProgressBar } from "@/components/features/ReportProgressBar";
 import { DownloadReportBtn } from "@/components/features/DownloadReportBtn";
 import { ShareReportBtn } from "@/components/features/ShareReportBtn";
 import { NameGeneratorWidget } from "@/components/features/NameGeneratorWidget";
+import { MermaidDiagram } from "@/components/report/visualizations/MermaidDiagram";
+import { FinancialChart } from "@/components/report/visualizations/FinancialChart";
+import { BlueprintCanvas } from "@/components/report/visualizations/BlueprintCanvas";
 
 const businessDNATabs = [
   { id: "overview", label: "Overview", icon: "dashboard" },
@@ -80,6 +83,10 @@ export default function ReportPage({ params }: { params: { id: string } }) {
   const pitchData = report?.pitchDeckData || report?.pitchData;
   const launchData = report?.launchChecklistData;
   const infrastructureData = report?.infrastructureData;
+  
+  // Visualizations
+  const diagramData = report?.diagramData;
+  const chartData = report?.chartData;
 
   const scores = [
     { label: "Market Potential", score: report?.marketScore || 0, color: "text-emerald-500" },
@@ -180,6 +187,20 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                   <span className="material-symbols-outlined text-emerald-600 text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
                   <h2 className="font-headline text-2xl font-bold text-on-surface">Business DNA Report — {ideaName}</h2>
                 </div>
+                
+                {diagramData?.reactflow?.businessBlueprint && (
+                  <div className="mb-8">
+                    <h3 className="font-headline text-lg font-bold text-on-surface mb-3">Business Blueprint (Interactive)</h3>
+                    <BlueprintCanvas nodes={diagramData.reactflow.businessBlueprint.nodes} edges={diagramData.reactflow.businessBlueprint.edges} />
+                  </div>
+                )}
+                
+                {diagramData?.mermaid?.businessWorkflow && (
+                  <div className="mb-8">
+                    <h3 className="font-headline text-lg font-bold text-on-surface mb-3">Core Workflow</h3>
+                    <MermaidDiagram chart={diagramData.mermaid.businessWorkflow} id={`workflow-${params.id}`} />
+                  </div>
+                )}
                 <p className="font-body text-lg text-on-surface-variant leading-relaxed">
                   {report?.data?.vcScore?.summary || marketData?.analysis || report?.idea?.problem || "Your comprehensive Business DNA report is ready. Navigate through the tabs to explore all 14 dimensions."}
                 </p>
@@ -220,6 +241,14 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                         </div>
                       ))}
                     </div>
+                    
+                    {chartData?.marketSizeChart && (
+                      <div className="mb-6">
+                        <h3 className="font-headline text-lg font-bold text-on-surface mb-3">Market Sizing Distribution</h3>
+                        <FinancialChart option={chartData.marketSizeChart} />
+                      </div>
+                    )}
+                    
                     <div>
                       <h3 className="font-headline text-lg font-bold text-on-surface mb-3">Market Analysis</h3>
                       <p className="font-body text-on-surface-variant leading-relaxed">{marketData.analysis}</p>
@@ -370,6 +399,28 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                         <p className="font-label text-2xl font-bold text-emerald-600">Month {financialData.breakEvenAnalysis?.timelineMonths}</p>
                       </div>
                     </div>
+                    
+                    {chartData?.revenueChart && (
+                      <div className="mb-6">
+                        <h3 className="font-headline text-lg font-bold text-on-surface mb-3">Revenue Projection</h3>
+                        <FinancialChart option={chartData.revenueChart} />
+                      </div>
+                    )}
+                    
+                    {chartData?.breakEvenChart && (
+                      <div className="mb-6">
+                        <h3 className="font-headline text-lg font-bold text-on-surface mb-3">Break-Even Analysis</h3>
+                        <FinancialChart option={chartData.breakEvenChart} />
+                      </div>
+                    )}
+                    
+                    {chartData?.cashFlowChart && (
+                      <div className="mb-6">
+                        <h3 className="font-headline text-lg font-bold text-on-surface mb-3">Cumulative Cash Flow</h3>
+                        <FinancialChart option={chartData.cashFlowChart} />
+                      </div>
+                    )}
+
                     <div>
                       <h3 className="font-headline text-lg font-bold text-on-surface mb-4">3-Year Revenue Forecast</h3>
                       <div className="overflow-x-auto">
@@ -419,6 +470,20 @@ export default function ReportPage({ params }: { params: { id: string } }) {
             {activeTab === "operations" && (
               <div className="space-y-8">
                 <h2 className="font-headline text-2xl font-bold text-on-surface">⚙️ Operations & SOPs</h2>
+                
+                {diagramData?.mermaid?.orgChart && (
+                  <div className="mb-8">
+                    <h3 className="font-headline text-lg font-bold text-on-surface mb-3">Organizational Structure</h3>
+                    <MermaidDiagram chart={diagramData.mermaid.orgChart} id={`orgchart-${params.id}`} />
+                  </div>
+                )}
+                
+                {diagramData?.mermaid?.supplyChain && (
+                  <div className="mb-8">
+                    <h3 className="font-headline text-lg font-bold text-on-surface mb-3">Supply Chain Flow</h3>
+                    <MermaidDiagram chart={diagramData.mermaid.supplyChain} id={`supply-${params.id}`} />
+                  </div>
+                )}
                 {operationsData?.sops?.length > 0 ? (
                   <div className="space-y-4">
                     {operationsData.sops.map((sop: any, i: number) => (
@@ -453,6 +518,13 @@ export default function ReportPage({ params }: { params: { id: string } }) {
             {activeTab === "launch" && (
               <div className="space-y-8">
                 <h2 className="font-headline text-2xl font-bold text-on-surface">🚀 Launch Checklist</h2>
+                
+                {diagramData?.mermaid?.launchRoadmap && (
+                  <div className="mb-8">
+                    <h3 className="font-headline text-lg font-bold text-on-surface mb-3">Launch Timeline</h3>
+                    <MermaidDiagram chart={diagramData.mermaid.launchRoadmap} id={`launch-${params.id}`} />
+                  </div>
+                )}
                 {(launchData || operationsData?.launchChecklist)?.length > 0 ? (
                   <div className="space-y-3">
                     {(launchData || operationsData.launchChecklist).map((item: any) => (
