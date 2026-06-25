@@ -1,86 +1,84 @@
 import { Injectable, Logger } from '@nestjs/common';
-import Anthropic from '@anthropic-ai/sdk';
-import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
-import { MarketAgentInput, MarketAgentOutput } from '../types';
+import { MarketAgentInput, MarketAgentOutput } from '../ai.types';
+import { GeminiProvider } from '../providers/gemini.provider';
+import { TavilyProvider } from '../providers/tavily.provider';
 import { buildMarketPrompt } from '../prompts/market.prompt';
 
 const MarketOutputSchema = z.object({
-  tam: z.object({
-    inrCr: z.number(),
-    usdM: z.number(),
-    cagr: z.number(),
-  }),
-  sam: z.object({
-    inrCr: z.number(),
-    usdM: z.number(),
-  }),
-  som: z.object({
-    inrCr: z.number(),
-    usdM: z.number(),
-  }),
+  tam: z.object({ value: z.number(), currency: z.string(), cagr: z.number() }),
+  sam: z.object({ value: z.number(), currency: z.string() }),
+  som: z.object({ value: z.number(), currency: z.string() }),
   analysis: z.string(),
   icp: z.string(),
-  tailwinds: z.array(z.string()).length(3),
+  tailwinds: z.array(z.string()).min(2),
   governmentSchemes: z.array(z.string()),
+  marketTrends: z.array(z.string()),
+  pestleAnalysis: z.object({
+    political: z.array(z.string()),
+    economic: z.array(z.string()),
+    social: z.array(z.string()),
+    technological: z.array(z.string()),
+    legal: z.array(z.string()),
+    environmental: z.array(z.string()),
+  }).optional(),
+  customerPersonas: z.array(z.object({
+    name: z.string(),
+    age: z.string(),
+    occupation: z.string(),
+    income: z.string(),
+    goals: z.array(z.string()),
+    painPoints: z.array(z.string()),
+    buyingBehavior: z.string(),
+    channels: z.array(z.string()),
+  })).optional(),
 });
 
+/**
+ * MarketAgent — Market Analyst powered by Gemini + Tavily.
+ *
+ * Uses Tavily to fetch real-time market data, statistics, and government schemes.
+ * Uses Gemini to synthesize the data into a structured market analysis with
+ * TAM/SAM/SOM calculations, PESTLE analysis, and customer personas.
+ */
 @Injectable()
 export class MarketAgent {
   private readonly logger = new Logger(MarketAgent.name);
-  private readonly client: Anthropic;
-  private readonly MODEL = 'claude-3-5-sonnet-20241022'; // Updated to valid model name
 
-  constructor(private configService: ConfigService) {
-    this.client = new Anthropic({
-      apiKey: this.configService.get<string>('ANTHROPIC_API_KEY'),
-    });
-  }
+  constructor(
+    private readonly gemini: GeminiProvider,
+    private readonly tavily: TavilyProvider,
+  ) {}
 
   async run(input: MarketAgentInput): Promise<MarketAgentOutput> {
-    let prompt = buildMarketPrompt(input);
-    this.logger.log(`[MarketAgent] Running analysis for: ${input.industry}`);
+    this.logger.log(`[MarketAgent] Running analysis for: ${input.industry} in ${input.geography}`);
 
-    const maxAttempts = 3;
-    let lastError: Error | null = null;
-    const startTime = Date.now();
+    // Step 1: Tavily search for real-time market data
+    const [marketData, trends, schemes] = await Promise.all([
+      this.tavily.searchMarketData(input.industry, input.geography),
+      this.tavily.searchTrends(input.industry),
+      this.tavily.searchGovernmentSchemes(input.country || input.geography, input.industry),
+    ]);
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const response = await this.client.messages.create({
-          model: this.MODEL,
-          max_tokens: 2048,
-          messages: [{ role: 'user', content: prompt }],
-        });
+    // Step 2: Build Gemini prompt with Tavily search context
+    const searchContext = [
+      this.tavily.formatForPrompt(marketData, 'Market Data & Statistics'),
+      this.tavily.formatForPrompt(trends, 'Industry Trends'),
+      this.tavily.formatForPrompt(schemes, 'Government Schemes & Programs'),
+    ].join('\n');
 
-        const rawText = (response.content[0] as Anthropic.TextBlock).text;
-        
-        // Find JSON block if it's wrapped in markdown
-        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-        const jsonStr = jsonMatch ? jsonMatch[0] : rawText;
+    const prompt = buildMarketPrompt(input, searchContext);
 
-        const parsed = JSON.parse(jsonStr);
-        const validated = MarketOutputSchema.parse(parsed);
+    // Step 3: Gemini structured generation
+    const response = await this.gemini.generateStructuredJson(prompt, MarketOutputSchema, {
+      maxTokens: 8192,
+      temperature: 0.6,
+    });
 
-        const duration = Date.now() - startTime;
-        this.logger.log(
-          `[MarketAgent] SUCCESS (Attempt ${attempt}/${maxAttempts}). Duration: ${duration}ms. Input tokens: ${response.usage.input_tokens}, Output tokens: ${response.usage.output_tokens}`,
-        );
+    this.logger.log(
+      `[MarketAgent] SUCCESS. Duration: ${response.durationMs}ms. Tokens: ${response.usage.totalTokens}`,
+    );
 
-        return validated as MarketAgentOutput;
-      } catch (err) {
-        lastError = err as Error;
-        this.logger.warn(`[MarketAgent] Validation/Parse failed on attempt ${attempt}. Error: ${lastError.message}`);
-        
-        if (attempt < maxAttempts) {
-          prompt += '\n\nIMPORTANT: You previously returned invalid JSON or it did not match the required schema. You MUST return ONLY the raw JSON object, no other text, and strictly follow the requested structure.';
-          // Small exponential backoff
-          await new Promise(res => setTimeout(res, 1000 * attempt));
-        }
-      }
-    }
-
-    this.logger.error(`[MarketAgent] ALL ATTEMPTS FAILED for: ${input.industry}`);
-    throw new Error(`MarketAgent failed to generate valid JSON after ${maxAttempts} attempts. Last error: ${lastError?.message}`);
+    return response.data as MarketAgentOutput;
   }
 }

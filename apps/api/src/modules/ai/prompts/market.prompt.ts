@@ -1,53 +1,35 @@
-import { MarketAgentInput } from './../ai.types';
-import { INDIA_CONTEXT, HINDI_CONTEXT } from './india-context';
-export function buildMarketPrompt(input: MarketAgentInput): string {
-  return `You are a market research analyst at Blume Ventures with 10 years of experience covering Indian technology markets. You have deep expertise in sizing B2B and B2C markets across EdTech, FinTech, AgriTech, HealthTech, SaaS, and D2C verticals in India and Southeast Asia. You have co-authored market reports cited by NASSCOM, Bain, and Redseer.
+import { MarketAgentInput } from '../ai.types';
+import { getCountryContext, getCountryCurrency, getLanguageInstruction } from './country-context';
 
-Your task is to produce a rigorous, data-driven market analysis for the startup idea described below.
+export function buildMarketPrompt(input: MarketAgentInput, searchContext: string = ''): string {
+  const { currency, symbol } = getCountryCurrency(input.country || input.geography);
+  const countryContext = getCountryContext({ country: input.country || input.geography, language: input.language });
+  const langInstruction = getLanguageInstruction(input.language);
+
+  return `You are a Senior Market Research Analyst at a top-tier management consulting firm. 
+You specialize in producing rigorous, data-driven market sizing, PESTLE analysis, and consumer insights.
+
+Your task is to produce a comprehensive market analysis for the startup idea described below.
 
 STARTUP IDEA:
 ${input.ideaDescription}
 
 INDUSTRY: ${input.industry}
 PRIMARY GEOGRAPHY: ${input.geography}
+COUNTRY: ${input.country || input.geography}
+
+${searchContext}
+
+${countryContext}
 
 INSTRUCTIONS:
-- Size the TAM (Total Addressable Market), SAM (Serviceable Addressable Market), and SOM (Serviceable Obtainable Market) using a bottom-up methodology where possible.
-- Express all monetary values in BOTH Indian Rupees (₹ Cr) AND USD ($ M).
-- The CAGR must reflect the 5-year projected growth for this specific market segment.
-- The ICP (Ideal Customer Profile) must be a concrete, psychographic + demographic description (e.g., "Mid-market FMCG brands in Tier 1/2 cities with 50-500 employees and ₹50 Cr+ annual revenue").
-- List exactly 3 structural tailwinds currently accelerating this market in India.
-- Reference any relevant Indian government schemes, initiatives, or policies (e.g., DPIIT recognition, PLI scheme, PM Gati Shakti, Digital India, MSME schemes) that create a demand catalyst.
-- Do NOT include any preamble, markdown, or commentary outside of the JSON.
+1. Size the TAM (Total Addressable Market), SAM (Serviceable Addressable Market), and SOM (Serviceable Obtainable Market) using a realistic bottom-up or top-down methodology based on the search context.
+2. Provide all monetary values as raw numbers (e.g., 5000000) for the JSON structure, representing the value in ${currency} (${symbol}).
+3. Write a compelling market narrative explaining why NOW is the right time.
+4. Define 2-3 detailed Customer Personas.
+5. Conduct a PESTLE Analysis (Political, Economic, Social, Technological, Legal, Environmental) relevant to this specific geography.
+6. Return the response strictly as a JSON object matching the requested schema. No markdown fences.
 
-OUTPUT FORMAT — return ONLY this JSON object, no other text:
-{
-  "tam": {
-    "inrCr": <number: Total Addressable Market in Indian Rupees Crore>,
-    "usdM": <number: Total Addressable Market in USD Million>,
-    "cagr": <number: 5-year CAGR percentage, e.g. 28.5>
-  },
-  "sam": {
-    "inrCr": <number: Serviceable Addressable Market in ₹ Cr>,
-    "usdM": <number: Serviceable Addressable Market in USD M>
-  },
-  "som": {
-    "inrCr": <number: Serviceable Obtainable Market in ₹ Cr (realistic 3-yr capture)>,
-    "usdM": <number: Serviceable Obtainable Market in USD M>
-  },
-  "analysis": "<string: 3-4 sentence narrative explaining the market opportunity, growth drivers, and why NOW is the right time>",
-  "icp": "<string: Concrete Ideal Customer Profile — include demographics, psychographics, job-to-be-done, and willingness to pay>",
-  "tailwinds": [
-    "<string: First structural market tailwind with specific data point>",
-    "<string: Second structural market tailwind with specific data point>",
-    "<string: Third structural market tailwind with specific data point>"
-  ],
-  "governmentSchemes": [
-    "<string: Relevant government scheme or policy with a brief explanation of its relevance>"
-  ]
-}
-
-${input.geography?.toLowerCase() === 'india' ? INDIA_CONTEXT : ''}
-${input.language === 'hi' ? HINDI_CONTEXT : ''}
+${langInstruction}
 `;
 }
