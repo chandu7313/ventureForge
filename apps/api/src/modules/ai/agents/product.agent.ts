@@ -1,92 +1,98 @@
 import { Injectable, Logger } from '@nestjs/common';
-import Anthropic from '@anthropic-ai/sdk';
-import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
-import { ProductAgentInput, ProductAgentOutput } from '../types';
+import { ProductAgentInput, ProductAgentOutput } from '../ai.types';
+import { GeminiProvider } from '../providers/gemini.provider';
 import { buildProductPrompt } from '../prompts/product.prompt';
 
-const MvpPhaseSchema = z.object({
-  phase: z.number(),
-  title: z.string(),
-  duration: z.string(),
-  tasks: z.array(z.string()),
-  milestone: z.string(),
-});
-
-const GtmChannelSchema = z.object({
-  channel: z.string(),
-  strategy: z.string(),
-  expectedCAC: z.string(),
-});
-
-const RiskItemSchema = z.object({
-  category: z.string(),
-  description: z.string(),
-  severity: z.enum(['High', 'Medium', 'Low']),
-  mitigation: z.string(),
-});
-
 const ProductOutputSchema = z.object({
-  mvp: z.array(MvpPhaseSchema).length(4),
-  gtm: z.array(GtmChannelSchema).length(5),
-  risks: z.array(RiskItemSchema).length(6),
+  mvp: z.array(z.object({
+    phase: z.number(),
+    title: z.string(),
+    duration: z.string(),
+    tasks: z.array(z.string()),
+    milestone: z.string(),
+  })).min(3),
+  gtm: z.array(z.object({
+    channel: z.string(),
+    strategy: z.string(),
+    expectedCAC: z.string(),
+  })).min(3),
+  risks: z.array(z.object({
+    category: z.string(),
+    description: z.string(),
+    severity: z.enum(['High', 'Medium', 'Low']),
+    mitigation: z.string(),
+  })).min(3),
   recommendedStack: z.array(z.string()),
+  successPrediction: z.object({
+    survivalProbability: z.number(),
+    fundingProbability: z.number(),
+    threeYearGrowthPotential: z.string(),
+    estimatedValuation: z.string(),
+  }).optional().default({
+    survivalProbability: 0,
+    fundingProbability: 0,
+    threeYearGrowthPotential: 'N/A',
+    estimatedValuation: 'N/A',
+  }),
+  pricingStrategy: z.object({
+    model: z.string(),
+    tiers: z.array(z.object({
+      name: z.string(),
+      price: z.string(),
+      features: z.array(z.string()),
+      target: z.string(),
+    })),
+    rationale: z.string(),
+    competitiveBenchmark: z.string(),
+  }).optional(),
+  productsAndServices: z.array(z.object({
+    name: z.string(),
+    description: z.string(),
+    category: z.string(),
+    revenueModel: z.string(),
+    targetSegment: z.string(),
+  })).optional(),
+  marketingStrategy: z.object({
+    positioning: z.string(),
+    channels: z.array(z.object({
+      name: z.string(),
+      strategy: z.string(),
+      budget: z.string(),
+      expectedROI: z.string(),
+    })),
+    contentPlan: z.array(z.string()),
+    brandVoice: z.string(),
+    kpis: z.array(z.string()),
+  }).optional(),
 });
 
+/**
+ * ProductAgent — Product Strategy & GTM powered by Gemini.
+ *
+ * Generates MVP roadmap, go-to-market strategy, risk assessment,
+ * pricing strategy, product catalog, and marketing strategy.
+ */
 @Injectable()
 export class ProductAgent {
   private readonly logger = new Logger(ProductAgent.name);
-  private readonly client: Anthropic;
-  private readonly MODEL = 'claude-3-5-sonnet-20241022';
 
-  constructor(private configService: ConfigService) {
-    this.client = new Anthropic({
-      apiKey: this.configService.get<string>('ANTHROPIC_API_KEY'),
-    });
-  }
+  constructor(private readonly gemini: GeminiProvider) {}
 
   async run(input: ProductAgentInput): Promise<ProductAgentOutput> {
-    let prompt = buildProductPrompt(input);
-    this.logger.log(`[ProductAgent] Building MVP plan for stage: ${input.stage}`);
+    this.logger.log(`[ProductAgent] Building product strategy for stage: ${input.stage}`);
 
-    const maxAttempts = 3;
-    let lastError: Error | null = null;
-    const startTime = Date.now();
+    const prompt = buildProductPrompt(input);
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const response = await this.client.messages.create({
-          model: this.MODEL,
-          max_tokens: 3072,
-          messages: [{ role: 'user', content: prompt }],
-        });
+    const response = await this.gemini.generateStructuredJson(prompt, ProductOutputSchema, {
+      maxTokens: 8192,
+      temperature: 0.6,
+    });
 
-        const rawText = (response.content[0] as Anthropic.TextBlock).text;
-        
-        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-        const jsonStr = jsonMatch ? jsonMatch[0] : rawText;
+    this.logger.log(
+      `[ProductAgent] SUCCESS. ${response.data.mvp.length} MVP phases, ${response.data.risks.length} risks. Duration: ${response.durationMs}ms`,
+    );
 
-        const parsed = JSON.parse(jsonStr);
-        const validated = ProductOutputSchema.parse(parsed);
-
-        const duration = Date.now() - startTime;
-        this.logger.log(
-          `[ProductAgent] SUCCESS (Attempt ${attempt}/${maxAttempts}). Duration: ${duration}ms. Input tokens: ${response.usage.input_tokens}, Output tokens: ${response.usage.output_tokens}`,
-        );
-
-        return validated as ProductAgentOutput;
-      } catch (err) {
-        lastError = err as Error;
-        this.logger.warn(`[ProductAgent] Validation/Parse failed on attempt ${attempt}. Error: ${lastError.message}`);
-        
-        if (attempt < maxAttempts) {
-          prompt += '\n\nIMPORTANT: You previously returned invalid JSON or it did not match the required schema. You MUST return ONLY the raw JSON object, no other text, and strictly follow the requested structure.';
-          await new Promise(res => setTimeout(res, 1000 * attempt));
-        }
-      }
-    }
-
-    this.logger.error(`[ProductAgent] ALL ATTEMPTS FAILED for stage: ${input.stage}`);
-    throw new Error(`ProductAgent failed to generate valid JSON after ${maxAttempts} attempts. Last error: ${lastError?.message}`);
+    return response.data as ProductAgentOutput;
   }
 }

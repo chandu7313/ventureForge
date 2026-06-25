@@ -1,86 +1,33 @@
-import { ProductAgentInput } from './../ai.types';
-import { INDIA_CONTEXT, HINDI_CONTEXT } from './india-context';
-export function buildProductPrompt(input: ProductAgentInput): string {
-  return `You are a Senior Product Manager with 0→1 experience at three of India's fastest-growing startups — Razorpay (B2B payments infrastructure), Zepto (10-min grocery delivery), and CRED (fintech rewards). You have shipped over 20 major product features with measurable impact on retention and revenue. You are obsessed with Indian user behaviour, low-bandwidth experiences, vernacular UX, and channel-market fit.
+import { ProductAgentInput } from '../ai.types';
+import { getCountryContext, getLanguageInstruction } from './country-context';
 
-Your task is to create a detailed MVP build plan and go-to-market strategy for the startup idea described below.
+export function buildProductPrompt(input: ProductAgentInput): string {
+  const countryContext = getCountryContext({ country: input.country || input.geography, language: input.language });
+  const langInstruction = getLanguageInstruction(input.language);
+
+  return `You are an elite CPO (Chief Product Officer) and Growth Head.
+Your job is to define the product strategy, MVP roadmap, and marketing strategy for a new startup.
 
 STARTUP IDEA:
 ${input.ideaDescription}
 
-CURRENT STAGE: ${input.stage}
-TEAM SIZE: ${input.teamSize} people
-AVAILABLE BUDGET: ${input.budget}
+STAGE: ${input.stage}
+TEAM SIZE: ${input.teamSize}
+BUDGET: ${input.budget}
+PRIMARY GEOGRAPHY: ${input.geography}
+COUNTRY: ${input.country || input.geography}
 
-INSTRUCTIONS FOR MVP PHASES:
-- Design exactly 4 phases. Each phase must be achievable within the given budget and team size.
-- Each phase must have a clear, measurable milestone (e.g., "100 paying customers", "₹5L MRR").
-- Tasks must be engineering/product-level specific (e.g., "Integrate Razorpay Payment Gateway with split settlements").
-- Phases must be sequential and build on each other.
+${countryContext}
 
-INSTRUCTIONS FOR GTM CHANNELS:
-- List exactly 5 channels. Prioritise India-specific channels.
-- MUST include at least one of: WhatsApp Business API, Jio Platforms (JioMart/JioFiber), regional language influencers (YouTube/Instagram in Hindi/Tamil/Telugu), or offline kiosk partnerships.
-- For each channel, specify a realistic Customer Acquisition Cost (CAC) in INR.
+INSTRUCTIONS:
+1. Break down the MVP (Minimum Viable Product) into exactly 4 distinct phases (e.g., Validation, Alpha, Beta, Launch). Include timeframes and key tasks.
+2. Define a Pricing Strategy with rationale and tiers based on the target audience.
+3. Propose a clear Marketing Strategy (positioning, brand voice, content plan, KPIs).
+4. List 5 key Go-to-Market (GTM) channels optimized for this geography and budget.
+5. Identify 6 critical risks across categories (market, financial, regulatory, technical, operational) and provide concrete mitigations.
+6. Recommend a modern, practical technology stack (if it's a tech product) or operational stack (if non-tech).
+7. Return the response strictly as a JSON object matching the requested schema. No markdown fences.
 
-INSTRUCTIONS FOR RISKS:
-- List exactly 6 risks. Include risks across tech, market, regulatory, and team dimensions.
-- Each mitigation strategy must be actionable, not generic.
-
-INSTRUCTIONS FOR STACK:
-- Recommend a lean, India-appropriate tech stack. Consider cost, talent availability in India, and scale.
-
-OUTPUT FORMAT — return ONLY this JSON object, no other text:
-{
-  "mvp": [
-    {
-      "phase": 1,
-      "title": "<string: Phase name>",
-      "duration": "<string: e.g. '6 weeks'>",
-      "tasks": ["<string>", "<string>", "<string>"],
-      "milestone": "<string: Measurable success metric>"
-    },
-    {
-      "phase": 2,
-      "title": "<string: Phase name>",
-      "duration": "<string>",
-      "tasks": ["<string>", "<string>", "<string>"],
-      "milestone": "<string>"
-    },
-    {
-      "phase": 3,
-      "title": "<string: Phase name>",
-      "duration": "<string>",
-      "tasks": ["<string>", "<string>", "<string>"],
-      "milestone": "<string>"
-    },
-    {
-      "phase": 4,
-      "title": "<string: Phase name>",
-      "duration": "<string>",
-      "tasks": ["<string>", "<string>", "<string>"],
-      "milestone": "<string>"
-    }
-  ],
-  "gtm": [
-    { "channel": "<string: Channel name>", "strategy": "<string: How to execute this channel specifically for this product>", "expectedCAC": "<string: e.g. '₹250 per user'>" },
-    { "channel": "<string>", "strategy": "<string>", "expectedCAC": "<string>" },
-    { "channel": "<string>", "strategy": "<string>", "expectedCAC": "<string>" },
-    { "channel": "<string>", "strategy": "<string>", "expectedCAC": "<string>" },
-    { "channel": "<string>", "strategy": "<string>", "expectedCAC": "<string>" }
-  ],
-  "risks": [
-    { "category": "<string: e.g. 'Regulatory'>", "description": "<string>", "severity": "<'High' | 'Medium' | 'Low'>", "mitigation": "<string: Specific action to take>" },
-    { "category": "<string>", "description": "<string>", "severity": "<'High' | 'Medium' | 'Low'>", "mitigation": "<string>" },
-    { "category": "<string>", "description": "<string>", "severity": "<'High' | 'Medium' | 'Low'>", "mitigation": "<string>" },
-    { "category": "<string>", "description": "<string>", "severity": "<'High' | 'Medium' | 'Low'>", "mitigation": "<string>" },
-    { "category": "<string>", "description": "<string>", "severity": "<'High' | 'Medium' | 'Low'>", "mitigation": "<string>" },
-    { "category": "<string>", "description": "<string>", "severity": "<'High' | 'Medium' | 'Low'>", "mitigation": "<string>" }
-  ],
-  "recommendedStack": ["<string: Technology 1>", "<string: Technology 2>", "<string: Technology 3>", "<string: Technology 4>", "<string: Technology 5>"]
-}
-
-${input.geography?.toLowerCase() === 'india' ? INDIA_CONTEXT : ''}
-${input.language === 'hi' ? HINDI_CONTEXT : ''}
+${langInstruction}
 `;
 }
