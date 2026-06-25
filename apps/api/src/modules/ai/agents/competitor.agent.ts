@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import Anthropic from '@anthropic-ai/sdk';
-import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
-import { CompetitorAgentInput, CompetitorAgentOutput } from '../types';
+import { CompetitorAgentInput, CompetitorAgentOutput } from '../ai.types';
+import { GeminiProvider } from '../providers/gemini.provider';
+import { TavilyProvider } from '../providers/tavily.provider';
 import { buildCompetitorPrompt } from '../prompts/competitor.prompt';
 
 const CompetitorSchema = z.object({
@@ -13,66 +13,71 @@ const CompetitorSchema = z.object({
   totalFunding: z.string(),
   weakness: z.string(),
   pricing: z.string(),
+  features: z.array(z.string()).optional(),
+});
+
+const SwotSchema = z.object({
+  name: z.string(),
+  strengths: z.array(z.string()),
+  weaknesses: z.array(z.string()),
+  opportunities: z.array(z.string()),
+  threats: z.array(z.string()),
 });
 
 const CompetitorOutputSchema = z.object({
-  competitors: z.array(CompetitorSchema).length(6),
+  competitors: z.array(CompetitorSchema).min(3),
+  swotAnalysis: z.array(SwotSchema).optional().default([]),
+  positioningMap: z.object({
+    xAxis: z.string(),
+    yAxis: z.string(),
+    competitors: z.array(z.object({ name: z.string(), x: z.number(), y: z.number() })),
+  }).optional().default({ xAxis: 'Price', yAxis: 'Quality', competitors: [] }),
+  whitespaceOpportunities: z.array(z.string()).optional().default([]),
 });
 
+/**
+ * CompetitorAgent — Competitive Intelligence powered by Gemini + Tavily.
+ *
+ * Uses Tavily to discover REAL competitors (names, funding, features).
+ * Never lets the LLM invent competitor names — all are search-verified.
+ * Uses Gemini to synthesize SWOT analysis and positioning insights.
+ */
 @Injectable()
 export class CompetitorAgent {
   private readonly logger = new Logger(CompetitorAgent.name);
-  private readonly client: Anthropic;
-  private readonly MODEL = 'claude-3-5-sonnet-20241022';
 
-  constructor(private configService: ConfigService) {
-    this.client = new Anthropic({
-      apiKey: this.configService.get<string>('ANTHROPIC_API_KEY'),
-    });
-  }
+  constructor(
+    private readonly gemini: GeminiProvider,
+    private readonly tavily: TavilyProvider,
+  ) {}
 
   async run(input: CompetitorAgentInput): Promise<CompetitorAgentOutput> {
-    let prompt = buildCompetitorPrompt(input);
     this.logger.log(`[CompetitorAgent] Scouting competitors for: ${input.industry}`);
 
-    const maxAttempts = 3;
-    let lastError: Error | null = null;
-    const startTime = Date.now();
+    // Step 1: Tavily search for real competitors
+    const competitorResults = await this.tavily.searchCompetitors(
+      input.industry,
+      input.country || input.geography,
+    );
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const response = await this.client.messages.create({
-          model: this.MODEL,
-          max_tokens: 2048,
-          messages: [{ role: 'user', content: prompt }],
-        });
+    // Step 2: Build prompt with real competitor data
+    const searchContext = this.tavily.formatForPrompt(
+      competitorResults,
+      'Real Competitor Intelligence (from live search)',
+    );
 
-        const rawText = (response.content[0] as Anthropic.TextBlock).text;
-        
-        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-        const jsonStr = jsonMatch ? jsonMatch[0] : rawText;
+    const prompt = buildCompetitorPrompt(input, searchContext);
 
-        const parsed = JSON.parse(jsonStr);
-        const validated = CompetitorOutputSchema.parse(parsed);
+    // Step 3: Gemini structured generation
+    const response = await this.gemini.generateStructuredJson(prompt, CompetitorOutputSchema, {
+      maxTokens: 6144,
+      temperature: 0.5,
+    });
 
-        const duration = Date.now() - startTime;
-        this.logger.log(
-          `[CompetitorAgent] SUCCESS (Attempt ${attempt}/${maxAttempts}). Duration: ${duration}ms. Input tokens: ${response.usage.input_tokens}, Output tokens: ${response.usage.output_tokens}`,
-        );
+    this.logger.log(
+      `[CompetitorAgent] SUCCESS. Found ${response.data.competitors.length} competitors. Duration: ${response.durationMs}ms`,
+    );
 
-        return validated as CompetitorAgentOutput;
-      } catch (err) {
-        lastError = err as Error;
-        this.logger.warn(`[CompetitorAgent] Validation/Parse failed on attempt ${attempt}. Error: ${lastError.message}`);
-        
-        if (attempt < maxAttempts) {
-          prompt += '\n\nIMPORTANT: You previously returned invalid JSON or it did not match the required schema. You MUST return ONLY the raw JSON object, no other text, and strictly follow the requested structure.';
-          await new Promise(res => setTimeout(res, 1000 * attempt));
-        }
-      }
-    }
-
-    this.logger.error(`[CompetitorAgent] ALL ATTEMPTS FAILED for: ${input.industry}`);
-    throw new Error(`CompetitorAgent failed to generate valid JSON after ${maxAttempts} attempts. Last error: ${lastError?.message}`);
+    return response.data as CompetitorAgentOutput;
   }
 }

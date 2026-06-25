@@ -1,84 +1,33 @@
-import { CompetitorAgentInput } from './../ai.types';
-import { INDIA_CONTEXT, HINDI_CONTEXT } from './india-context';
-export function buildCompetitorPrompt(input: CompetitorAgentInput): string {
-  return `You are a competitive intelligence analyst with 8 years specialising in Indian and global startup landscapes. You have researched over 500 startups for primary investors at Nexus, Kalaari, and Elevation Capital. You track Crunchbase, Tracxn, Inc42, and PitchBook daily. You understand competitive dynamics in both VC-funded and bootstrapped ecosystems.
+import { CompetitorAgentInput } from '../ai.types';
+import { getCountryContext, getCountryCurrency, getLanguageInstruction } from './country-context';
 
-Your task is to identify the top competitors for the startup idea described below and analyze each with the precision of a pre-deal due diligence report.
+export function buildCompetitorPrompt(input: CompetitorAgentInput, searchContext: string = ''): string {
+  const { currency, symbol } = getCountryCurrency(input.country || input.geography);
+  const countryContext = getCountryContext({ country: input.country || input.geography, language: input.language });
+  const langInstruction = getLanguageInstruction(input.language);
+
+  return `You are a Competitive Intelligence Specialist at a tier-1 strategy firm.
+Your job is to map out the competitive landscape for a new startup idea based on REAL market data.
 
 STARTUP IDEA:
 ${input.ideaDescription}
 
 INDUSTRY: ${input.industry}
+PRIMARY GEOGRAPHY: ${input.geography}
+COUNTRY: ${input.country || input.geography}
+
+${searchContext}
+
+${countryContext}
 
 INSTRUCTIONS:
-- Identify EXACTLY 6 competitors: 3 Direct (same solution to same problem) and 3 Indirect (alternative solution to same problem).
-- Prioritise Indian competitors first. If fewer than 3 Indian players exist in a category, include global ones.
-- The "weakness" field must be a specific, actionable competitive gap — not generic (e.g., "no regional language support for Tier 2/3 India" is good; "poor UX" is not).
-- The "pricing" field must state the actual pricing tier or model (e.g., "₹2,999/month per seat, no free tier").
-- "fundingStage" must be one of: Bootstrapped, Pre-Seed, Seed, Series A, Series B, Series C+, Public.
-- Do NOT include any preamble, markdown, or commentary outside of the JSON.
+1. Synthesize the provided Real Competitor Intelligence. NEVER invent or hallucinate competitors. Only use real companies operating in this space.
+2. For each competitor, provide accurate funding data (in ${currency} or USD if global), headquarters, strengths, and weaknesses.
+3. Conduct a SWOT analysis (Strengths, Weaknesses, Opportunities, Threats) for the top 3 competitors.
+4. Generate data for a Positioning Map (e.g., Price vs Quality). Assign reasonable X and Y coordinates (from 0 to 100) for each competitor.
+5. Identify clear "Whitespace Opportunities" — gaps in the market that current competitors are missing.
+6. Return the response strictly as a JSON object matching the requested schema. No markdown fences.
 
-OUTPUT FORMAT — return ONLY this JSON object, no other text:
-{
-  "competitors": [
-    {
-      "name": "<string: Company name>",
-      "type": "<'Direct' | 'Indirect'>",
-      "hq": "<string: City, Country>",
-      "fundingStage": "<string: e.g. Series B>",
-      "totalFunding": "<string: e.g. $12M or Bootstrapped>",
-      "weakness": "<string: A specific, exploitable competitive gap or blind spot>",
-      "pricing": "<string: Actual pricing model and tiers>"
-    },
-    {
-      "name": "<string: Company name>",
-      "type": "<'Direct' | 'Indirect'>",
-      "hq": "<string: City, Country>",
-      "fundingStage": "<string>",
-      "totalFunding": "<string>",
-      "weakness": "<string: A specific, exploitable competitive gap or blind spot>",
-      "pricing": "<string>"
-    },
-    {
-      "name": "<string: Company name>",
-      "type": "<'Direct' | 'Indirect'>",
-      "hq": "<string: City, Country>",
-      "fundingStage": "<string>",
-      "totalFunding": "<string>",
-      "weakness": "<string: A specific, exploitable competitive gap or blind spot>",
-      "pricing": "<string>"
-    },
-    {
-      "name": "<string: Company name>",
-      "type": "<'Direct' | 'Indirect'>",
-      "hq": "<string: City, Country>",
-      "fundingStage": "<string>",
-      "totalFunding": "<string>",
-      "weakness": "<string: A specific, exploitable competitive gap or blind spot>",
-      "pricing": "<string>"
-    },
-    {
-      "name": "<string: Company name>",
-      "type": "<'Direct' | 'Indirect'>",
-      "hq": "<string: City, Country>",
-      "fundingStage": "<string>",
-      "totalFunding": "<string>",
-      "weakness": "<string: A specific, exploitable competitive gap or blind spot>",
-      "pricing": "<string>"
-    },
-    {
-      "name": "<string: Company name>",
-      "type": "<'Direct' | 'Indirect'>",
-      "hq": "<string: City, Country>",
-      "fundingStage": "<string>",
-      "totalFunding": "<string>",
-      "weakness": "<string: A specific, exploitable competitive gap or blind spot>",
-      "pricing": "<string>"
-    }
-  ]
-}
-
-${input.geography?.toLowerCase() === 'india' ? INDIA_CONTEXT : ''}
-${input.language === 'hi' ? HINDI_CONTEXT : ''}
+${langInstruction}
 `;
 }
