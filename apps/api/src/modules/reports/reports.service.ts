@@ -9,6 +9,7 @@ import { ReportStatus } from '@prisma/client';
 import { GenerateReportDto } from './reports.controller';
 
 import { UsersService } from '../users/users.service';
+import { AiOrchestrator } from '../ai/ai.orchestrator';
 
 @Injectable()
 export class ReportsService {
@@ -20,6 +21,7 @@ export class ReportsService {
     private readonly redis: RedisService,
     private readonly dedup: IdeaDedupService,
     private readonly usersService: UsersService,
+    private readonly aiOrchestrator: AiOrchestrator,
   ) {}
 
   // ─────────────────────────────────────────────────
@@ -54,9 +56,58 @@ export class ReportsService {
       data: {
         ideaId: idea.id,
         userId: user.id,
-        status: ReportStatus.PENDING,
+        status: ReportStatus.PROCESSING,
       },
     });
+
+    try {
+      const startTime = Date.now();
+      const overview = await this.aiOrchestrator.generateFastOverview({
+        reportId: report.id,
+        ideaDescription: idea.problem,
+        industry: idea.industry,
+        geography: idea.geography,
+        country: idea.country,
+        businessType: idea.businessType || 'Service',
+        stage: idea.stage,
+        teamSize: idea.teamSize,
+        budget: idea.budget,
+      });
+
+      await this.prisma.report.update({
+        where: { id: report.id },
+        data: {
+          status: ReportStatus.DONE,
+          verdict: overview.verdict,
+          ideaScore: overview.ideaScore,
+          marketScore: overview.marketScore,
+          riskScore: overview.riskScore,
+          investorScore: overview.investorScore,
+          revenueScore: overview.revenueScore,
+          overallScore: overview.overallScore,
+          aiRecommendations: [
+            {
+              category: 'Overview',
+              priority: 'High',
+              recommendation: overview.summary,
+              impact: 'High',
+              effort: 'Low',
+              timeframe: 'Immediate'
+            }
+          ],
+          generationTimeMs: Date.now() - startTime,
+        },
+      });
+      report.status = ReportStatus.DONE;
+    } catch (error) {
+      this.logger.error(`Failed to generate fast overview: ${error.message}`);
+      // Fallback
+      await this.prisma.report.update({
+        where: { id: report.id },
+        data: { status: ReportStatus.FAILED, errorMessage: error.message }
+      });
+      report.status = ReportStatus.FAILED;
+    }
 
     // Deduct 100 credits
     await this.usersService.deductCredits(userId, 100);
@@ -100,6 +151,51 @@ export class ReportsService {
     }
 
     return report;
+  }
+
+  // ─────────────────────────────────────────────────
+  // Generate Section On-Demand
+  // ─────────────────────────────────────────────────
+  async generateSection(userId: string, reportId: string, section: string) {
+    const report = await this.prisma.report.findFirst({
+      where: { id: reportId, userId, deletedAt: null },
+      include: { idea: true },
+    });
+    if (!report) throw new NotFoundException('Report not found');
+
+    const input = {
+      reportId: report.id,
+      ideaDescription: report.idea.problem,
+      industry: report.idea.industry,
+      geography: report.idea.geography,
+      country: report.idea.country,
+      businessType: report.idea.businessType || 'Service',
+      stage: report.idea.stage,
+      teamSize: report.idea.teamSize,
+      budget: report.idea.budget,
+    };
+
+    const data = await this.aiOrchestrator.generateSection(input, section);
+
+    const updateData: any = {};
+    if (section === 'market') updateData.marketData = data;
+    if (section === 'competitors') updateData.competitorData = data;
+    if (section === 'formation') updateData.businessFormationData = data;
+    if (section === 'compliance') updateData.complianceData = data;
+    if (section === 'team') updateData.teamData = data;
+    if (section === 'operations') updateData.sopData = data;
+    if (section === 'financial') updateData.financialData = data;
+    if (section === 'product') updateData.productServiceData = data;
+
+    const updated = await this.prisma.report.update({
+      where: { id: report.id },
+      data: updateData,
+    });
+
+    // Invalidate cache
+    await this.redis.del(CacheKeys.report(reportId));
+
+    return updated;
   }
 
   // ─────────────────────────────────────────────────
