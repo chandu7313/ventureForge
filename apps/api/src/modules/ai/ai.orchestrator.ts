@@ -67,6 +67,52 @@ export class AiOrchestrator {
     throw new Error(`[${agentName}] All ${maxRetries + 1} attempts failed. Last error: ${lastError!.message}`);
   }
 
+  async generateFastOverview(input: OrchestratorInput): Promise<any> {
+    const schema = z.object({
+      verdict: z.enum(['FUND', 'WATCH', 'PASS']),
+      ideaScore: z.number(),
+      marketScore: z.number(),
+      riskScore: z.number(),
+      investorScore: z.number(),
+      revenueScore: z.number(),
+      overallScore: z.number(),
+      summary: z.string(),
+    });
+
+    const prompt = `Perform a lightning fast validation for the following startup idea.
+Idea: ${input.ideaDescription}
+Industry: ${input.industry}
+Target Geography: ${input.geography || input.country}
+
+Provide a quick verdict, scores (0-100), and a 1-paragraph summary.`;
+
+    const response = await this.gemini.generateStructuredJson(prompt, schema);
+    return response;
+  }
+
+  async generateSection(input: OrchestratorInput, section: string): Promise<any> {
+    switch (section) {
+      case 'market':
+        return await this.withRetry(() => this.marketAgent.run(input), 'MarketAgent');
+      case 'competitors':
+        return await this.withRetry(() => this.competitorAgent.run(input), 'CompetitorAgent');
+      case 'formation':
+        return await this.withRetry(() => this.businessFormationAgent.run(input), 'BusinessFormationAgent');
+      case 'compliance':
+        return await this.withRetry(() => this.complianceAgent.run(input), 'ComplianceAgent');
+      case 'team':
+        return await this.withRetry(() => this.operationsAgent.run(input), 'OperationsAgent'); // Operations handles team as well
+      case 'operations':
+        return await this.withRetry(() => this.operationsAgent.run(input), 'OperationsAgent');
+      case 'financial':
+        return await this.withRetry(() => this.financialAgent.run(input), 'FinancialAgent');
+      case 'product':
+        return await this.withRetry(() => this.productAgent.run(input), 'ProductAgent');
+      default:
+        throw new Error(`Unknown section: ${section}`);
+    }
+  }
+
   async run(input: OrchestratorInput): Promise<OrchestratorOutput> {
     const cacheKey = `report:orchestration:${input.reportId}`;
 
