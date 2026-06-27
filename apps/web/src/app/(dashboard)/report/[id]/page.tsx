@@ -8,9 +8,11 @@ import { ReportProgressBar } from "@/components/features/ReportProgressBar";
 import { DownloadReportBtn } from "@/components/features/DownloadReportBtn";
 import { ShareReportBtn } from "@/components/features/ShareReportBtn";
 import { NameGeneratorWidget } from "@/components/features/NameGeneratorWidget";
-import { MermaidDiagram } from "@/components/report/visualizations/MermaidDiagram";
-import { FinancialChart } from "@/components/report/visualizations/FinancialChart";
-import { BlueprintCanvas } from "@/components/report/visualizations/BlueprintCanvas";
+import dynamic from "next/dynamic";
+
+const MermaidDiagram = dynamic(() => import("@/components/report/visualizations/MermaidDiagram").then(mod => mod.MermaidDiagram), { ssr: false });
+const FinancialChart = dynamic(() => import("@/components/report/visualizations/FinancialChart").then(mod => mod.FinancialChart), { ssr: false });
+const BlueprintCanvas = dynamic(() => import("@/components/report/visualizations/BlueprintCanvas").then(mod => mod.BlueprintCanvas), { ssr: false });
 
 const businessDNATabs = [
   { id: "overview", label: "Overview", icon: "dashboard" },
@@ -29,11 +31,45 @@ const businessDNATabs = [
   { id: "launch", label: "Launch Checklist", icon: "rocket_launch" },
 ];
 
+const GenerateSectionBtn = ({ section, sectionName, onGenerate, isGenerating }: any) => (
+  <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-outline-variant/30 rounded-xl bg-surface-container-low/30 text-center">
+    <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4" style={{ fontVariationSettings: "'FILL' 0" }}>bolt</span>
+    <h3 className="font-headline text-lg font-bold text-on-surface mb-2">{sectionName} Not Generated</h3>
+    <p className="font-body text-sm text-on-surface-variant max-w-md mx-auto mb-6">
+      This section was skipped to give you a quick overview. Click the button below to generate {sectionName.toLowerCase()} on-demand.
+    </p>
+    <button
+      onClick={() => onGenerate(section)}
+      disabled={isGenerating}
+      className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+    >
+      {isGenerating ? <span className="material-symbols-outlined animate-spin">progress_activity</span> : <span className="material-symbols-outlined">magic_button</span>}
+      {isGenerating ? `Generating ${sectionName}...` : `Generate ${sectionName}`}
+    </button>
+  </div>
+);
+
 export default function ReportPage({ params }: { params: { id: string } }) {
   const [report, setReport] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [activeTab, setActiveTab] = React.useState("overview");
+  const [isPending, startTransition] = React.useTransition();
+  const [generatingSection, setGeneratingSection] = React.useState<string | null>(null);
   const { status, percent, stage, message, position, estimatedWait, error } = useReportSocket(params.id);
+
+  const generateSection = async (section: string) => {
+    setGeneratingSection(section);
+    try {
+      const data = await apiClient(`/api/v1/reports/${params.id}/generate/${section}`, {
+        method: "POST"
+      });
+      setReport(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGeneratingSection(null);
+    }
+  };
 
   React.useEffect(() => {
     async function loadReport() {
@@ -164,7 +200,11 @@ export default function ReportPage({ params }: { params: { id: string } }) {
             {businessDNATabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  startTransition(() => {
+                    setActiveTab(tab.id);
+                  });
+                }}
                 className={`flex items-center gap-1.5 px-4 py-3 font-headline text-sm whitespace-nowrap transition-all border-b-2 ${
                   activeTab === tab.id
                     ? "font-bold text-emerald-700 border-emerald-600"
@@ -266,7 +306,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                       </div>
                     )}
                   </>
-                ) : <p className="text-on-surface-variant">Market analysis data will appear here once the report is generated.</p>}
+                ) : <GenerateSectionBtn section="market" sectionName="Market Analysis" onGenerate={generateSection} isGenerating={generatingSection === 'market'} />}
               </div>
             )}
 
@@ -291,7 +331,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                       </div>
                     ))}
                   </div>
-                ) : <p className="text-on-surface-variant">Competitor data will appear here once the report is generated.</p>}
+                ) : <GenerateSectionBtn section="competitors" sectionName="Competitor Intelligence" onGenerate={generateSection} isGenerating={generatingSection === 'competitors'} />}
               </div>
             )}
 
@@ -326,7 +366,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                       </div>
                     ))}
                   </>
-                ) : <p className="text-on-surface-variant">Business formation data will appear here once the report is generated.</p>}
+                ) : <GenerateSectionBtn section="formation" sectionName="Business Formation" onGenerate={generateSection} isGenerating={generatingSection === 'formation'} />}
               </div>
             )}
 
@@ -375,7 +415,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                       </div>
                     )}
                   </>
-                ) : <p className="text-on-surface-variant">Compliance data will appear here once the report is generated.</p>}
+                ) : <GenerateSectionBtn section="compliance" sectionName="Compliance & Tax" onGenerate={generateSection} isGenerating={generatingSection === 'compliance'} />}
               </div>
             )}
 
@@ -462,7 +502,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                       </div>
                     </div>
                   </>
-                ) : <p className="text-on-surface-variant">Financial projections will appear here once the report is generated.</p>}
+                ) : <GenerateSectionBtn section="financial" sectionName="Financial Projections" onGenerate={generateSection} isGenerating={generatingSection === 'financial'} />}
               </div>
             )}
 
@@ -510,7 +550,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                       </details>
                     ))}
                   </div>
-                ) : <p className="text-on-surface-variant">SOPs will appear here once the report is generated.</p>}
+                ) : <GenerateSectionBtn section="operations" sectionName="Operations & SOPs" onGenerate={generateSection} isGenerating={generatingSection === 'operations'} />}
               </div>
             )}
 
@@ -541,7 +581,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                       </div>
                     ))}
                   </div>
-                ) : <p className="text-on-surface-variant">Launch checklist will appear here once the report is generated.</p>}
+                ) : <GenerateSectionBtn section="operations" sectionName="Launch Checklist" onGenerate={generateSection} isGenerating={generatingSection === 'operations'} />}
               </div>
             )}
 
