@@ -2,7 +2,7 @@
 
 An AI-powered investment research tool that analyzes companies and provides clear **Invest/Pass** verdicts with reasoning, key metrics, and risks.
 
-Built with a **React** frontend and **Node.js/Express** backend, using **LangGraph.js** for agent orchestration and **Google Gemini** as the LLM.
+Built with a **React** frontend and **Node.js/Express** backend, using **LangGraph.js** for agent orchestration, **Google Gemini** as the LLM, and **Redis** for caching.
 
 ## How It Works
 
@@ -17,16 +17,29 @@ resolveCompany → gatherResearch → synthesize → decide
 3. **synthesize** — Gemini writes a plain-language investment research summary
 4. **decide** — Gemini outputs a structured verdict with confidence score, reasoning, risks, and key metrics
 
+### Caching and Recent Searches
+To prevent redundant API calls, the backend uses **Redis** to cache results.
+- **Result Cache**: The full verdict JSON is cached for **24 hours**. If you search for the same company again within that time, the result is returned instantly.
+- **Recent Searches**: The last 10 successful searches are stored in Redis and displayed on the frontend home screen. Clicking a recent search card immediately loads the cached result.
+
 ## Setup
 
 ### Prerequisites
 - Node.js 20+
+- Redis (Local or Cloud)
 - API keys for:
   - [Google AI Studio](https://aistudio.google.com/apikey) (Gemini)
   - [Financial Modeling Prep](https://financialmodelingprep.com/developer) (free tier)
   - [Tavily](https://tavily.com) (free tier)
 
-### 1. Backend
+### 1. Redis Setup
+You need a running Redis instance. You can use Docker locally:
+```bash
+docker run -d -p 6379:6379 --name redis redis
+```
+*(Alternatively, create a free database on [Redis Cloud](https://redis.com/try-free/) and get the connection URL).*
+
+### 2. Backend
 
 ```bash
 cd backend
@@ -40,6 +53,7 @@ GOOGLE_API_KEY=your_key_here
 FMP_API_KEY=your_key_here
 TAVILY_API_KEY=your_key_here
 PORT=3001
+REDIS_URL=redis://localhost:6379
 ```
 
 ```bash
@@ -49,7 +63,7 @@ npm run dev
 
 Backend runs on **http://localhost:3001**.
 
-### 2. Frontend
+### 3. Frontend
 
 ```bash
 cd frontend
@@ -71,55 +85,20 @@ curl -X POST http://localhost:3001/api/research \
   -d '{"companyName": "Apple"}'
 ```
 
-**Response:**
+Returns the decision JSON. If cached, it includes `"cached": true`.
+
+### GET /api/recent-searches
+
+Returns an array of the last 10 searches:
 ```json
-{
-  "company": "Apple",
-  "ticker": "AAPL",
-  "sector": "Technology",
-  "isPublic": true,
-  "summary": "Apple Inc. remains one of the most...",
-  "decision": {
+[
+  {
+    "companyName": "Apple",
     "verdict": "INVEST",
-    "confidence": 78,
-    "reasoning": [
-      "Dominant market position in consumer electronics",
-      "Strong services revenue growth",
-      "Massive cash reserves and share buyback program"
-    ],
-    "risks": [
-      "China supply chain concentration",
-      "Regulatory scrutiny on App Store practices",
-      "Smartphone market saturation"
-    ],
-    "keyMetrics": {
-      "Market Cap": "$3.4T",
-      "P/E Ratio": "33.2",
-      "Revenue Growth": "5.1%",
-      "Debt/Equity": "1.87",
-      "ROE": "157%",
-      "Sector": "Technology"
-    }
+    "timestamp": "2026-07-12T15:45:00.000Z"
   }
-}
+]
 ```
-
-## Example Runs
-
-### Apple (Large Public Company)
-- **Verdict:** INVEST (78% confidence)
-- Full financial data from FMP + recent news
-- Strong metrics across the board, risks around China and regulation
-
-### Stripe (Private Company)
-- **Verdict:** INVEST (62% confidence)
-- No FMP data (private) — analysis based on news/qualitative data
-- High growth potential, risks around competition and IPO timing
-
-### Tesla (Controversial Stock)
-- **Verdict:** PASS (45% confidence)
-- Full financial data + polarizing news sentiment
-- High valuation concerns, CEO risk, but strong EV market position
 
 ## Project Structure
 
@@ -127,13 +106,14 @@ curl -X POST http://localhost:3001/api/research \
 backend/
   src/
     agent/
-      state.ts    — LangGraph state definition (Annotation)
-      nodes.ts    — 4 node functions
-      graph.ts    — StateGraph wiring
+      state.js    — LangGraph state definition
+      nodes.js    — 4 node functions
+      graph.js    — StateGraph wiring
     tools/
-      financials.ts — FMP API wrapper
-      news.ts       — Tavily API wrapper
-    index.ts      — Express server + route
+      financials.js — FMP API wrapper
+      news.js       — Tavily API wrapper
+    index.js      — Express server + route
+    redis.js      — Redis client initialization
 
 frontend/
   src/
@@ -155,4 +135,3 @@ frontend/
 ## License
 
 MIT
-# AI-Research-Agent
