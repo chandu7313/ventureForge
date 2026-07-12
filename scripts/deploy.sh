@@ -1,62 +1,82 @@
 #!/bin/bash
 set -e
 
-ENV=$1
-if [ "$ENV" != "staging" ] && [ "$ENV" != "production" ]; then
-  echo "Usage: bash scripts/deploy.sh [staging|production]"
-  exit 1
+echo "======================================"
+echo "🚀 Vercel Deployment Script (startupIQ)"
+echo "======================================"
+
+# Safely load variables from .env if it exists to use as default values
+if [ -f .env ]; then
+  echo "Loading default values from .env..."
+  while IFS='=' read -r key value; do
+    # Skip comments and empty lines
+    if [[ $key == \#* ]] || [[ -z $key ]]; then
+      continue
+    fi
+    # Remove surrounding quotes from value
+    value=$(echo "$value" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+    export "$key=$value"
+  done < .env
 fi
 
-echo "Starting deployment for $ENV environment..."
-
-# In a real CI/CD pipeline, AWS_ACCOUNT_ID and AWS_REGION are injected via env vars.
-AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:-"YOUR_ACCOUNT_ID"}
-AWS_REGION=${AWS_REGION:-"ap-south-1"}
-ECR_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
-
-# Assume we are already SSH'd into the target machine or this is running natively on the EC2
-cd /opt/ventureforge
-
-echo "1. Pulling latest images from ECR..."
-docker-compose -f docker-compose.prod.yml pull
-
-echo "2. Applying zero-downtime deployment..."
-docker-compose -f docker-compose.prod.yml up -d --no-recreate
-
-echo "3. Running Prisma Migrations..."
-docker-compose -f docker-compose.prod.yml exec -T api npx prisma migrate deploy
-
-echo "4. Running Health Checks..."
-MAX_RETRIES=5
-SLEEP_TIME=15
-ATTEMPT=1
-SUCCESS=0
-
-while [ $ATTEMPT -le $MAX_RETRIES ]; do
-  echo "Health check attempt $ATTEMPT of $MAX_RETRIES..."
+# Function to prompt for an environment variable
+prompt_env() {
+  local var_name=$1
+  local default_val="${!var_name}"
+  local user_input
   
-  API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/api/v1/health || true)
-  WEB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ || true)
-
-  if [ "$API_STATUS" == "200" ] && [ "$WEB_STATUS" == "200" ]; then
-    echo "Health check passed!"
-    SUCCESS=1
-    break
+  # Print the prompt to stderr so we can capture the return value from stdout
+  read -p "Enter $var_name [${default_val}]: " user_input >&2
+  
+  if [ -z "$user_input" ]; then
+    echo "$default_val"
+  else
+    echo "$user_input"
   fi
+}
 
-  echo "API: $API_STATUS, WEB: $WEB_STATUS. Waiting $SLEEP_TIME seconds..."
-  sleep $SLEEP_TIME
-  ATTEMPT=$((ATTEMPT+1))
-done
+echo ""
+echo "Please provide/verify the required environment variables for deployment:"
+echo "(Press Enter to use the default value shown in brackets)"
+echo ""
 
-if [ $SUCCESS -eq 0 ]; then
-  echo "Deployment failed health checks! Rolling back..."
-  docker-compose -f docker-compose.prod.yml down
-  # In a robust setup, you would tag previous images and roll back to them here.
-  # For simplicity, bringing back up will use the currently cached images if tagged correctly.
-  docker-compose -f docker-compose.prod.yml up -d
-  echo "Rollback initiated. Check logs immediately!"
-  exit 1
-fi
+# --- Core variables ---
+DATABASE_URL=$(prompt_env "DATABASE_URL")
+APP_URL=$(prompt_env "APP_URL")
 
-echo "Deployment completed successfully!"
+# --- AI APIs ---
+ANTHROPIC_API_KEY=$(prompt_env "ANTHROPIC_API_KEY")
+GROQ_API_KEY=$(prompt_env "GROQ_API_KEY")
+GEMINI_API_KEY=$(prompt_env "GEMINI_API_KEY")
+TAVILY_API_KEY=$(prompt_env "TAVILY_API_KEY")
+
+# --- Payments (Razorpay) ---
+RAZORPAY_KEY_ID=$(prompt_env "RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET=$(prompt_env "RAZORPAY_KEY_SECRET")
+RAZORPAY_WEBHOOK_SECRET=$(prompt_env "RAZORPAY_WEBHOOK_SECRET")
+
+# --- Redis Cache ---
+REDIS_HOST=$(prompt_env "REDIS_HOST")
+REDIS_PORT=$(prompt_env "REDIS_PORT")
+
+echo ""
+echo "======================================"
+echo "Starting Vercel deployment..."
+echo "======================================"
+
+# Run the vercel deploy command with the provided environment variables
+npx vercel --prod \
+  --env DATABASE_URL="$DATABASE_URL" \
+  --env APP_URL="$APP_URL" \
+  --env ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+  --env GROQ_API_KEY="$GROQ_API_KEY" \
+  --env GEMINI_API_KEY="$GEMINI_API_KEY" \
+  --env TAVILY_API_KEY="$TAVILY_API_KEY" \
+  --env RAZORPAY_KEY_ID="$RAZORPAY_KEY_ID" \
+  --env RAZORPAY_KEY_SECRET="$RAZORPAY_KEY_SECRET" \
+  --env RAZORPAY_WEBHOOK_SECRET="$RAZORPAY_WEBHOOK_SECRET" \
+  --env REDIS_HOST="$REDIS_HOST" \
+  --env REDIS_PORT="$REDIS_PORT"
+
+echo "======================================"
+echo "✅ Deployment completed successfully!"

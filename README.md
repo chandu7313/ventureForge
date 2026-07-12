@@ -6,6 +6,8 @@ It transforms any raw business idea into a fully validated, legally structured, 
 
 ![VentureForge AI Hero](apps/web/public/hero-preview.png)
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fchandu7313%2FVentureForge&env=DATABASE_URL,APP_URL,ANTHROPIC_API_KEY,GEMINI_API_KEY,GROQ_API_KEY,TAVILY_API_KEY,RAZORPAY_KEY_ID,RAZORPAY_KEY_SECRET,RAZORPAY_WEBHOOK_SECRET,REDIS_HOST,REDIS_PORT&envDescription=Provide%20the%20required%20environment%20variables%20to%20deploy%20StartupIQ)
+
 ## What Makes VentureForge AI Different?
 
 Where most tools stop at simple idea validation, VentureForge AI goes all the way from the first spark of an idea to a 12-month execution roadmap. It's built with deep context on the Indian market, regulations, compliance, and funding ecosystem.
@@ -39,7 +41,7 @@ Where most tools stop at simple idea validation, VentureForge AI goes all the wa
 
 #### Layer 3: Growth & Monitoring
 *How do I scale and stay updated?*
-- **AI Co-Founder**: Persistent, context-aware chatbot (Powered by Claude).
+- **AI Co-Founder**: Persistent, context-aware chatbot (Powered by Gemini).
 - **Startup Digital Twin**: Live simulation engine for modeling scenarios.
 - **Launch Checklist**: Dependency-ordered execution roadmap.
 
@@ -51,7 +53,7 @@ Where most tools stop at simple idea validation, VentureForge AI goes all the wa
 | **Backend** | NestJS | Robust, modular API architecture |
 | **Database** | PostgreSQL, Prisma ORM | Relational data modeling |
 | **Caching/Queues**| Redis, BullMQ | Asynchronous AI job processing |
-| **AI Models** | Anthropic Claude 3.5 Sonnet | Core intelligence engine |
+| **AI Models** | Google Gemini 2.5 Flash | Core intelligence engine |
 | **Infra** | Docker, Nginx, Terraform | Containerized, scalable deployment |
 | **Monitoring** | Prometheus, Grafana | System observability |
 
@@ -81,7 +83,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed diagrams and workflow docu
 - Node.js >= 20
 - pnpm >= 8
 - Docker and Docker Compose
-- Anthropic API Key
+- Gemini API Key
 
 ### Setup
 
@@ -101,7 +103,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed diagrams and workflow docu
    ```env
    DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ventureforge?schema=public"
    REDIS_URL="redis://localhost:6379"
-   ANTHROPIC_API_KEY="your-claude-key"
+   GEMINI_API_KEY="your-gemini-key"
    NEXT_PUBLIC_API_URL="http://localhost:3001/api/v1"
    ```
 
