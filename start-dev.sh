@@ -14,7 +14,7 @@ sleep 5
 # 3. Database Push & Seed
 echo "🗄️ Pushing Prisma Schema & Seeding..."
 pnpm db:push
-pnpm run db:seed
+pnpm --filter @ventureforge/db db:seed
 
 # 4. Start Dev Servers
 echo "⚡ Starting Web and API servers..."
