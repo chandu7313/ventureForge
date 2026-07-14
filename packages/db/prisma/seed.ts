@@ -1,4 +1,4 @@
-import { PrismaClient, Plan, Industry, Geography, ReportStatus, Verdict } from '@prisma/client';
+import { PrismaClient, Plan, SubscriptionPlan, Industry, Geography, ReportStatus, Verdict } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -17,9 +17,8 @@ async function main() {
         email: 'alice@ventureforge.dev',
         password: defaultPassword,
         name: 'Alice Sharma',
-        plan: Plan.PRO,
-        reportsUsed: 4,
-        reportsLimit: -1, // unlimited
+        plan: SubscriptionPlan.PRO,
+        reportsThisMonth: 4,
       },
     }),
     prisma.user.upsert({
@@ -29,9 +28,8 @@ async function main() {
         email: 'bob@ventureforge.dev',
         password: defaultPassword,
         name: 'Bob Patel',
-        plan: Plan.FREE,
-        reportsUsed: 1,
-        reportsLimit: 1,
+        plan: SubscriptionPlan.FREE,
+        reportsThisMonth: 1,
       },
     }),
     prisma.user.upsert({
@@ -41,9 +39,8 @@ async function main() {
         email: 'charlie@ventureforge.dev',
         password: defaultPassword,
         name: 'Charlie Nair',
-        plan: Plan.PREMIUM,
-        reportsUsed: 12,
-        reportsLimit: -1,
+        plan: SubscriptionPlan.ENTERPRISE,
+        reportsThisMonth: 12,
       },
     }),
   ]);
