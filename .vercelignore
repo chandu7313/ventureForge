@@ -1,0 +1,5 @@
+apps/api/**
+infrastructure/**
+nginx/**
+docker-compose*.yml
+Dockerfile
