@@ -11,7 +11,7 @@ VentureForge AI operates as a multi-agent AI orchestration platform. It is struc
 ### The Stack
 - **Frontend**: Next.js 14, React 18, Tailwind CSS, Shadcn UI, Framer Motion, React Query.
 - **Backend**: NestJS 10, Prisma ORM, BullMQ, Redis, JWT Authentication.
-- **AI Integration**: Anthropic Claude Sonnet 4.5 API.
+- **AI Integration**: Google Gemini 2.5 Flash API.
 - **Infrastructure**: Docker, AWS (EC2, RDS PostgreSQL, ElastiCache Redis, S3).
 
 ---
