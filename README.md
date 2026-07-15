@@ -47,15 +47,15 @@ Where most tools stop at simple idea validation, VentureForge AI goes all the wa
 
 ## Tech Stack
 
-| Component | Technology | Description |
-|-----------|------------|-------------|
-| **Frontend** | Next.js 14, React 18, Tailwind CSS | High-performance, responsive UI |
-| **Backend** | NestJS | Robust, modular API architecture |
-| **Database** | PostgreSQL, Prisma ORM | Relational data modeling |
-| **Caching/Queues**| Redis, BullMQ | Asynchronous AI job processing |
-| **AI Models** | Google Gemini 2.5 Flash | Core intelligence engine |
-| **Infra** | Docker, Nginx, Terraform | Containerized, scalable deployment |
-| **Monitoring** | Prometheus, Grafana | System observability |
+| Component          | Technology                         | Description                        |
+| ------------------ | ---------------------------------- | ---------------------------------- |
+| **Frontend**       | Next.js 14, React 18, Tailwind CSS | High-performance, responsive UI    |
+| **Backend**        | NestJS                             | Robust, modular API architecture   |
+| **Database**       | PostgreSQL, Prisma ORM             | Relational data modeling           |
+| **Caching/Queues** | Redis, BullMQ                      | Asynchronous AI job processing     |
+| **AI Models**      | Google Gemini 2.5 Flash            | Core intelligence engine           |
+| **Infra**          | Docker, Nginx, Terraform           | Containerized, scalable deployment |
+| **Monitoring**     | Prometheus, Grafana                | System observability               |
 
 ## Architecture
 
