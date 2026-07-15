@@ -10,7 +10,8 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "db:push": "pnpm --filter @ventureforge/db db:push"
+    "db:push": "pnpm --filter @ventureforge/db db:push",
+    "postinstall": "pnpm --filter @ventureforge/db db:generate"
   },
   "devDependencies": {
     "turbo": "^1.13.0",
