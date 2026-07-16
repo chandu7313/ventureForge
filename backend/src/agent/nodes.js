@@ -3,7 +3,7 @@ import { fetchFinancials } from "../tools/financials.js";
 import { searchNews } from "../tools/news.js";
 
 const llm = new ChatGoogleGenerativeAI({
-  model: "gemini-1.5-flash",
+  model: "gemini-3.5-flash",
   temperature: 0.2,
 });
 
@@ -102,8 +102,8 @@ export async function decide(state) {
 
 Rules:
 - confidence is your certainty in the verdict (0-100)
-- reasoning should have 3-5 clear bullet points
-- risks should have 2-4 specific risks
+- reasoning should have 3-5 clear bullet points. Each point MUST be formatted exactly as "Short Title: Detailed description"
+- risks should have 2-4 specific risks. Each risk MUST be formatted exactly as "Short Title: Detailed description"
 - keyMetrics should include 4-6 relevant metrics (use "N/A" if data unavailable)
 - For keyMetrics, include things like: Market Cap, P/E Ratio, Revenue Growth, Debt/Equity, ROE, Sector
 - Output ONLY the JSON, nothing else`,

@@ -25,13 +25,13 @@ app.post("/api/research", async (req, res) => {
     // 1. Check Cache
     const cachedData = await redis.get(cacheKey);
     if (cachedData) {
-      console.log(`\n⚡ Cache hit for: ${normalizedCompany}`);
+      console.log(`\nCache hit for: ${normalizedCompany}`);
       const parsed = JSON.parse(cachedData);
       return res.json({ ...parsed, cached: true });
     }
 
     // 2. Run Agent
-    console.log(`\n🔍 Researching: ${normalizedCompany}`);
+    console.log(`\nResearching: ${normalizedCompany}`);
     const startTime = Date.now();
 
     const result = await researchAgent.invoke({
@@ -39,7 +39,7 @@ app.post("/api/research", async (req, res) => {
     });
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`✅ Done in ${elapsed}s — Verdict: ${result.decision?.verdict}`);
+    console.log(`Done in ${elapsed}s — Verdict: ${result.decision?.verdict}`);
 
     const responseData = {
       company: normalizedCompany,
@@ -87,6 +87,10 @@ app.get("/api/recent-searches", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Investment Research Agent running on http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`Investment Research Agent running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;

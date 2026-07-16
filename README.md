@@ -1,138 +1,56 @@
-# AI Investment Research Agent
+# AI Research Agent
 
-An AI-powered investment research tool that analyzes companies and provides clear **Invest/Pass** verdicts with reasoning, key metrics, and risks.
+## Overview
+This is a web app that researches companies using AI and tells you if you should invest or not. It uses React for the frontend and Node.js/Express for the backend.
 
-Built with a **React** frontend and **Node.js/Express** backend, using **LangGraph.js** for agent orchestration, **Google Gemini** as the LLM, and **Redis** for caching.
+## How to run it
+You need Node.js and Redis installed.
 
-## How It Works
-
-Enter a company name → the agent runs a 4-step research pipeline:
-
+1. Add your API keys to `backend/.env`:
 ```
-resolveCompany → gatherResearch → synthesize → decide
-```
-
-1. **resolveCompany** — Gemini identifies the stock ticker and sector from the company name
-2. **gatherResearch** — Fetches financial data (Financial Modeling Prep) and recent news (Tavily) in parallel
-3. **synthesize** — Gemini writes a plain-language investment research summary
-4. **decide** — Gemini outputs a structured verdict with confidence score, reasoning, risks, and key metrics
-
-### Caching and Recent Searches
-To prevent redundant API calls, the backend uses **Redis** to cache results.
-- **Result Cache**: The full verdict JSON is cached for **24 hours**. If you search for the same company again within that time, the result is returned instantly.
-- **Recent Searches**: The last 10 successful searches are stored in Redis and displayed on the frontend home screen. Clicking a recent search card immediately loads the cached result.
-
-## Setup
-
-### Prerequisites
-- Node.js 20+
-- Redis (Local or Cloud)
-- API keys for:
-  - [Google AI Studio](https://aistudio.google.com/apikey) (Gemini)
-  - [Financial Modeling Prep](https://financialmodelingprep.com/developer) (free tier)
-  - [Tavily](https://tavily.com) (free tier)
-
-### 1. Redis Setup
-You need a running Redis instance. You can use Docker locally:
-```bash
-docker run -d -p 6379:6379 --name redis redis
-```
-*(Alternatively, create a free database on [Redis Cloud](https://redis.com/try-free/) and get the connection URL).*
-
-### 2. Backend
-
-```bash
-cd backend
-cp .env .env.local   # optional — or edit .env directly
-```
-
-Fill in your API keys in `backend/.env`:
-
-```
-GOOGLE_API_KEY=your_key_here
-FMP_API_KEY=your_key_here
-TAVILY_API_KEY=your_key_here
+GOOGLE_API_KEY=your_key
+FMP_API_KEY=your_key
+TAVILY_API_KEY=your_key
 PORT=3001
 REDIS_URL=redis://localhost:6379
 ```
 
+2. Start the backend:
 ```bash
+cd backend
 npm install
 npm run dev
 ```
 
-Backend runs on **http://localhost:3001**.
-
-### 3. Frontend
-
+3. Start the frontend:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Frontend runs on **http://localhost:5173**.
+The app will run on `http://localhost:5173`.
 
-The frontend hits `http://localhost:3001` by default (configured in `frontend/.env`).
+## How it works
+The backend uses LangGraph to run a 4-step workflow:
+1. It resolves the company name to find the stock ticker.
+2. It fetches financial data from Financial Modeling Prep and news from Tavily Search.
+3. The AI (Gemini) reads the data and writes a summary.
+4. The AI decides if it's an "INVEST" or "PASS" and outputs JSON with reasoning and risks.
 
-## API
+The frontend is a simple React app that sends the company name to the backend and displays the results in a grid. We also use Redis to cache the results for 24 hours so we don't waste API calls.
 
-### POST /api/research
+## Key decisions & trade-offs
+- I used Express instead of Next.js because it was simpler to set up a custom LangGraph agent in a standard Node environment.
+- I used plain CSS instead of a component library to keep the frontend lightweight.
+- I used Redis for caching because financial data doesn't change every minute, but I skipped adding a real database (like PostgreSQL) because there are no user accounts in this MVP.
+- I used JavaScript instead of TypeScript on the frontend to save time and reduce build complexity.
 
-```bash
-curl -X POST http://localhost:3001/api/research \
-  -H "Content-Type: application/json" \
-  -d '{"companyName": "Apple"}'
-```
+## Example runs
+- **Apple (AAPL)**: Returned "INVEST" because of their strong brand and services revenue, but warned about slowing hardware sales.
+- **Tesla (TSLA)**: Returned "PASS" because of high valuation multiples and increased competition in the EV market.
 
-Returns the decision JSON. If cached, it includes `"cached": true`.
-
-### GET /api/recent-searches
-
-Returns an array of the last 10 searches:
-```json
-[
-  {
-    "companyName": "Apple",
-    "verdict": "INVEST",
-    "timestamp": "2026-07-12T15:45:00.000Z"
-  }
-]
-```
-
-## Project Structure
-
-```
-backend/
-  src/
-    agent/
-      state.js    — LangGraph state definition
-      nodes.js    — 4 node functions
-      graph.js    — StateGraph wiring
-    tools/
-      financials.js — FMP API wrapper
-      news.js       — Tavily API wrapper
-    index.js      — Express server + route
-    redis.js      — Redis client initialization
-
-frontend/
-  src/
-    App.jsx
-    components/
-      SearchForm.jsx
-      ResultCard.jsx
-    main.jsx
-    index.css
-```
-
-## Ports
-
-| App | Port |
-|-----|------|
-| Backend | 3001 |
-| Frontend | 5173 |
-
-## License
-
-MIT
-# AI-Research-Agent
+## What I would improve with more time
+- Add user accounts so people can save their favorite companies.
+- Show historical stock price charts using a library like Chart.js.
+- Make the frontend show step-by-step progress while the LangGraph agent is running, instead of just a single loading screen.
