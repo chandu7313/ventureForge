@@ -14,7 +14,7 @@ COPY packages/config/package.json ./packages/config/
 COPY apps/api/package.json       ./apps/api/
 COPY apps/web/package.json       ./apps/web/
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # ─────────────────────────────────────────────────────────────
 # Stage 2: Build TypeScript
@@ -55,7 +55,7 @@ COPY packages/types/package.json ./packages/types/
 COPY apps/api/package.json       ./apps/api/
 COPY apps/web/package.json       ./apps/web/
 
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
 # Copy compiled output + Prisma client
 COPY --from=builder /app/apps/api/dist          ./apps/api/dist
