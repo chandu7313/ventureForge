@@ -1,56 +1,146 @@
-# AI Research Agent
+# VentureForge AI — The Complete AI Business Operating System
 
-## Overview
-This is a web app that researches companies using AI and tells you if you should invest or not. It uses React for the frontend and Node.js/Express for the backend.
+VentureForge AI is an AI-powered startup intelligence and business operating system built specifically for Indian founders, MSMEs, incubators, and innovation teams. 
 
-## How to run it
-You need Node.js and Redis installed.
+It transforms any raw business idea into a fully validated, legally structured, operationally ready, and investor-grade business blueprint — **in minutes**.
 
-1. Add your API keys to `backend/.env`:
-```
-GOOGLE_API_KEY=your_key
-FMP_API_KEY=your_key
-TAVILY_API_KEY=your_key
-PORT=3001
-REDIS_URL=redis://localhost:6379
-```
+![VentureForge AI Hero](apps/web/public/hero-preview.png)
 
-2. Start the backend:
-```bash
-cd backend
-npm install
-npm run dev
-```
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fchandu7313%2FVentureForge&env=DATABASE_URL,APP_URL,ANTHROPIC_API_KEY,GEMINI_API_KEY,GROQ_API_KEY,TAVILY_API_KEY,RAZORPAY_KEY_ID,RAZORPAY_KEY_SECRET,RAZORPAY_WEBHOOK_SECRET,REDIS_HOST,REDIS_PORT&envDescription=Provide%20the%20required%20environment%20variables%20to%20deploy%20StartupIQ)
 
-3. Start the frontend:
-```bash
-cd frontend
-npm install
-npm run dev
-```
+## What Makes VentureForge AI Different?
 
-The app will run on `http://localhost:5173`.
+Where most tools stop at simple idea validation, VentureForge AI goes all the way from the first spark of an idea to a 12-month execution roadmap. It's built with deep context on the Indian market, regulations, compliance, and funding ecosystem.
 
-## How it works
-The backend uses LangGraph to run a 4-step workflow:
-1. It resolves the company name to find the stock ticker.
-2. It fetches financial data from Financial Modeling Prep and news from Tavily Search.
-3. The AI (Gemini) reads the data and writes a summary.
-4. The AI decides if it's an "INVEST" or "PASS" and outputs JSON with reasoning and risks.
+### The 3-Layer Intelligence Architecture
 
-The frontend is a simple React app that sends the company name to the backend and displays the results in a grid. We also use Redis to cache the results for 24 hours so we don't waste API calls.
+#### Layer 1: Validation Intelligence
+*Is this idea worth pursuing?*
+- **Idea Clarity Score**: Analyzes problem-solution fit.
+- **AI Startup Score™**: 6-dimension proprietary scoring system.
+- **Market Size Analyzer**: TAM/SAM/SOM calculation in ₹ Crore and USD.
+- **Competitor Intelligence**: Direct & indirect competitor mapping, pricing analysis, and SWOT.
+- **Risk Intelligence**: 5-category risk matrix with severity tracking.
+- **Success Predictor**: Survival and funding probability modeling.
 
-## Key decisions & trade-offs
-- I used Express instead of Next.js because it was simpler to set up a custom LangGraph agent in a standard Node environment.
-- I used plain CSS instead of a component library to keep the frontend lightweight.
-- I used Redis for caching because financial data doesn't change every minute, but I skipped adding a real database (like PostgreSQL) because there are no user accounts in this MVP.
-- I used JavaScript instead of TypeScript on the frontend to save time and reduce build complexity.
+#### Layer 2: Business Formation Engine
+*How do I legally and operationally start?*
+- **Business Formation Guide**: Legal structure recommendation (Private Limited, LLP, OPC, etc.).
+- **Registration & Compliance**: State and industry-specific compliance checklist with costs/links.
+- **Tax & Accounting Planner**: GST, TDS, advance tax calendar, and software recommendations.
+- **Business Banking Setup**: Recommendations for accounts, payment gateways, and UPI.
+- **Infrastructure Planner**: Office/factory requirements, equipment lists, and utility estimates.
+- **Team Builder AI**: Org structure generation, year-wise hiring roadmap, and salary benchmarking.
+- **Technology Stack**: Custom tech stack generation for both tech and non-tech businesses.
+- **Supplier Intelligence**: Procurement strategy and supply chain risk assessment.
+- **SOP Generator**: Ready-to-use Standard Operating Procedures (SOPs).
+- **Financial Projections**: 3-year P&L, cash flow, unit economics, and break-even analysis.
+- **Funding Plan**: Recommendations across PMEGP, Mudra, Startup India, Angels, and VCs.
+- **AI Go-To-Market**: 30/60/90-day acquisition roadmap.
+- **Pitch Deck Generator**: 12-slide investor-ready pitch structure.
 
-## Example runs
-- **Apple (AAPL)**: Returned "INVEST" because of their strong brand and services revenue, but warned about slowing hardware sales.
-- **Tesla (TSLA)**: Returned "PASS" because of high valuation multiples and increased competition in the EV market.
+#### Layer 3: Growth & Monitoring
+*How do I scale and stay updated?*
+- **AI Co-Founder**: Persistent, context-aware chatbot (Powered by Gemini).
+- **Startup Digital Twin**: Live simulation engine for modeling scenarios.
+- **Launch Checklist**: Dependency-ordered execution roadmap.
 
-## What I would improve with more time
-- Add user accounts so people can save their favorite companies.
-- Show historical stock price charts using a library like Chart.js.
-- Make the frontend show step-by-step progress while the LangGraph agent is running, instead of just a single loading screen.
+## Tech Stack
+
+| Component          | Technology                         | Description                        |
+| ------------------ | ---------------------------------- | ---------------------------------- |
+| **Frontend**       | Next.js 14, React 18, Tailwind CSS | High-performance, responsive UI    |
+| **Backend**        | NestJS                             | Robust, modular API architecture   |
+| **Database**       | PostgreSQL, Prisma ORM             | Relational data modeling           |
+| **Caching/Queues** | Redis, BullMQ                      | Asynchronous AI job processing     |
+| **AI Models**      | Google Gemini 2.5 Flash            | Core intelligence engine           |
+| **Infra**          | Docker, Nginx, Terraform           | Containerized, scalable deployment |
+| **Monitoring**     | Prometheus, Grafana                | System observability               |
+
+## Architecture
+
+VentureForge AI uses a highly parallelized, event-driven multi-agent architecture:
+
+1. **User Input**: User submits idea via Next.js frontend.
+2. **API & Queue**: NestJS API validates input and queues a job in BullMQ.
+3. **Stage 1 (Parallel Orchestration)**: The `AiOrchestrator` spins up 7 specialist agents in parallel:
+   - Market Agent
+   - Competitor Agent
+   - Product Agent
+   - Business Formation Agent
+   - Compliance Agent
+   - Financial Agent
+   - Operations Agent
+4. **Stage 2 (Synthesis)**: The VC Agent synthesizes the outputs of Stage 1 into final scores and pitch materials.
+5. **Streaming**: Progress is streamed back to the frontend in real-time via WebSockets.
+6. **Storage**: Complete Business DNA is stored as structured JSON in PostgreSQL.
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed diagrams and workflow documentation.
+
+## Quick Start (Development)
+
+### Prerequisites
+- Node.js >= 20
+- pnpm >= 8
+- Docker and Docker Compose
+- Gemini API Key
+
+### Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/chandu7313/VentureForge.git
+   cd VentureForge
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pnpm install
+   ```
+
+3. **Environment Variables**
+   Copy `.env.example` to `.env` in the root directory and fill in your keys:
+   ```env
+   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ventureforge?schema=public"
+   REDIS_URL="redis://localhost:6379"
+   GEMINI_API_KEY="your-gemini-key"
+   NEXT_PUBLIC_API_URL="http://localhost:3001/api/v1"
+   ```
+
+4. **Start local infrastructure (Postgres & Redis)**
+   ```bash
+   docker-compose up -d redis db
+   ```
+
+5. **Database Setup**
+   ```bash
+   pnpm db:push
+   pnpm --filter @ventureforge/db db:seed
+   ```
+
+6. **Start the development servers**
+   ```bash
+   pnpm dev
+   ```
+
+The applications will be available at:
+- Web App: `http://localhost:3000`
+- API Swagger Docs: `http://localhost:3001/api/docs`
+- BullMQ Board: `http://localhost:3001/admin/queues`
+
+## Pricing Model
+
+VentureForge AI operates on a subscription model tailored for the Indian market:
+
+- **Free**: ₹0 (1 report/month, basic validation only)
+- **Starter**: ₹499/month (5 reports/month, full Business DNA, PDF export)
+- **Pro**: ₹1,999/month (Unlimited reports, AI Co-Founder, Market Monitoring)
+- **Enterprise**: ₹9,999/month (White-labeling, API access, Bulk generation)
+
+## Contributing
+
+We welcome contributions! Please see our contributing guidelines for details on how to submit pull requests, report issues, and suggest features.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
