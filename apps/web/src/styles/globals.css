@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Sovereign Analyst Design System ────────────────────────────────── */
+
+@layer base {
+  :root {
+    /* Surface Hierarchy (Paper Layering) */
+    --background: #fcf8fa;
+    --surface: #fcf8fa;
+    --surface-dim: #dcd9db;
+    --surface-bright: #fcf8fa;
+    --surface-container-lowest: #ffffff;
+    --surface-container-low: #f6f3f5;
+    --surface-container: #f0edef;
+    --surface-container-high: #eae7e9;
+    --surface-container-highest: #e4e2e4;
+    --surface-variant: #e4e2e4;
+    --surface-tint: #565e74;
+
+    /* Primary (Institutional Dark) */
+    --primary: #000000;
+    --primary-container: #131b2e;
+    --primary-fixed: #dae2fd;
+    --primary-fixed-dim: #bec6e0;
+    --on-primary: #ffffff;
+    --on-primary-container: #7c839b;
+    --on-primary-fixed: #131b2e;
+    --on-primary-fixed-variant: #3f465c;
+
+    /* Secondary (Validation Green) */
+    --secondary: #006e2f;
+    --secondary-container: #6bff8f;
+    --secondary-fixed: #6bff8f;
+    --secondary-fixed-dim: #4ae176;
+    --on-secondary: #ffffff;
+    --on-secondary-container: #007432;
+    --on-secondary-fixed: #002109;
+    --on-secondary-fixed-variant: #005321;
+
+    /* Tertiary (Analytical Slate) */
+    --tertiary: #000000;
+    --tertiary-container: #0b1c30;
+    --tertiary-fixed: #d3e4fe;
+    --tertiary-fixed-dim: #b7c8e1;
+    --on-tertiary: #ffffff;
+    --on-tertiary-container: #75859d;
+    --on-tertiary-fixed: #0b1c30;
+    --on-tertiary-fixed-variant: #38485d;
+
+    /* Neutral */
+    --on-background: #1b1b1d;
+    --on-surface: #1b1b1d;
+    --on-surface-variant: #45464d;
+    --outline: #76777d;
+    --outline-variant: #c6c6cd;
+    --inverse-surface: #303032;
+    --inverse-on-surface: #f3f0f2;
+    --inverse-primary: #bec6e0;
+
+    /* Error */
+    --error: #ba1a1a;
+    --error-container: #ffdad6;
+    --on-error: #ffffff;
+    --on-error-container: #93000a;
+  }
+
+  * {
+    border-color: var(--outline-variant);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--on-background);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: var(--secondary-container);
+    color: var(--on-secondary-container);
+  }
+}
+
+@layer components {
+  /* Ambient Depth Shadow (No hard drop shadows) */
+  .ambient-shadow {
+    box-shadow: 0 4px 40px -6px rgba(27, 27, 29, 0.06);
+  }
+
+  /* Custom Institutional Easing */
+  .institutional-transition {
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    transition-duration: 400ms;
+  }
+
+  /* Ghost Border (15% opacity boundary) */
+  .border-ghost {
+    border-color: rgba(198, 198, 205, 0.15);
+  }
+
+  /* Glass Rule for floating panels */
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+@layer utilities {
+  .font-headline {
+    font-family: 'Manrope', sans-serif;
+  }
+  .font-body {
+    font-family: 'Inter', sans-serif;
+  }
+  .font-label {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+}

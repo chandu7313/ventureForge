@@ -1,0 +1,328 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+// Legacy plan enum kept for backward compatibility with existing payments
+enum Plan {
+  FREE
+  PRO
+  PREMIUM
+}
+
+enum ReportStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum ReportType {
+  VALIDATION      // Layer 1 — basic idea validation
+  BUSINESS_DNA    // Full Business DNA report (all 27 modules)
+}
+
+enum Industry {
+  EDTECH
+  FINTECH
+  AGRITECH
+  HEALTHTECH
+  SAAS
+  D2C
+  ECOMMERCE
+  LOGISTICS
+  HRTECH
+  PROPTECH
+  LEGALTECH
+  CLIMATETECH
+  DEEPTECH
+  CREATOR_ECONOMY
+  FOOD
+  MANUFACTURING
+  RETAIL
+  EXPORT
+  SERVICES
+  REAL_ESTATE
+  OTHER
+}
+
+enum Geography {
+  INDIA_TIER1
+  INDIA_TIER2_3
+  PAN_INDIA
+  SOUTH_ASIA
+  SOUTHEAST_ASIA
+  GLOBAL
+}
+
+enum BusinessStructure {
+  SOLE_PROPRIETORSHIP
+  PARTNERSHIP
+  LLP
+  PRIVATE_LIMITED
+  OPC
+}
+
+enum Verdict {
+  FUND
+  WATCH
+  PASS
+}
+
+// ─────────────────────────────────────────────
+// MODELS
+// ─────────────────────────────────────────────
+
+model User {
+  id                    String             @id @default(cuid())
+  email                 String             @unique
+  password              String
+  name                  String?
+  avatarUrl             String?
+  credits               Int                @default(1000)
+  plan                  SubscriptionPlan   @default(FREE)
+  reportsThisMonth      Int                @default(0)
+  reportsResetAt        DateTime?
+
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  ideas                 Idea[]
+  reports               Report[]
+  comparisons           Comparison[]
+  payments              Payment[]
+  usageLogs             UsageLog[]
+  subscriptions         Subscription[]
+
+  @@index([email])
+  @@index([createdAt])
+  @@index([plan])
+}
+
+model Idea {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name         String
+  problem      String     @db.Text
+  targetUsers  String
+  industry     Industry
+  geography    Geography  @default(PAN_INDIA)
+  stage        String     @default("idea") // idea, mvp, growth
+  teamSize     Int        @default(1)
+  budget       String     @default("< ₹5L")
+  primarySkill String?    // e.g. "Engineering", "Sales", "Design"
+
+  // VentureForge AI — expanded fields for Business DNA
+  country      String     @default("India")
+  state        String?    // Indian state for compliance mapping
+  businessType String?    // product, service, manufacturing, trading, export
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  reports      Report[]
+
+  @@index([userId])
+  @@index([industry])
+  @@index([createdAt])
+}
+
+model Report {
+  id            String       @id @default(cuid())
+  ideaId        String
+  idea          Idea         @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status        ReportStatus @default(PENDING)
+  reportType    ReportType   @default(BUSINESS_DNA)
+
+  // ─── AI Startup Score™ (6-dimension proprietary scoring) ───
+  ideaScore           Int?    // Overall idea clarity (0–100)
+  marketScore         Int?    // Market potential (0–100)
+  moatScore           Int?    // Competitive advantage / scalability (0–100)
+  riskScore           Int?    // Risk assessment (0–100, higher = safer)
+  investorScore       Int?    // Investor attractiveness (0–100)
+  revenueScore        Int?    // Revenue feasibility (0–100)
+  overallScore        Int?    // Overall success probability (0–100)
+  verdict             Verdict?
+
+  // ─── Layer 1: Validation Intelligence (Agent outputs) ───
+  marketData          Json?   // Market Analyst: TAM/SAM/SOM, ICP, tailwinds
+  competitorData      Json?   // Competitor Scout: competitors, SWOT, positioning
+  riskData            Json?   // Risk Intelligence: 5-category risk matrix
+  successPrediction   Json?   // Success Predictor: survival, funding, growth probability
+
+  // ─── Layer 2: Business Formation Engine ───
+  businessFormationData   Json?   // Legal structure recommendation, pros/cons
+  complianceData          Json?   // Registration & compliance checklist
+  taxPlanData             Json?   // Tax & accounting planner
+  bankingSetupData        Json?   // Business banking recommendations
+  productServiceData      Json?   // Product/service planner
+  infrastructureData      Json?   // Infrastructure requirements & costs
+  teamData                Json?   // Team Builder: org chart, hiring roadmap
+  technologyData          Json?   // Technology stack planner
+  brandingData            Json?   // Website & branding generator
+  supplierData            Json?   // Supplier & vendor intelligence
+  sopData                 Json?   // SOP Generator output
+  fundingData             Json?   // Funding & capital planner
+  financialData           Json?   // Financial projections: P&L, cash flow
+
+  // ─── Layer 2 continued: GTM, MVP, Pitch ───
+  gtmData             Json?   // Go-to-market planner
+  mvpData             Json?   // MVP Builder output
+  pitchDeckData       Json?   // Investor-ready pitch deck
+  investorMatchData   Json?   // Investor match engine
+  monetizationData    Json?   // Monetization strategy from VC Agent
+  investorData        Json?   // VC dimensions from VC Agent
+  pitchData           Json?   // Legacy pitch slides field
+
+  // ─── Layer 3: Growth & Monitoring ───
+  digitalTwinData     Json?   // Startup Digital Twin simulation
+  launchChecklistData Json?   // Step-by-step launch checklist
+
+  // ─── Visualizations & Synthesis ───
+  diagramData         Json?   // Mermaid & ReactFlow diagram configurations
+  chartData           Json?   // ECharts rendering configurations
+  aiRecommendations   Json?   // Top AI recommended actions
+
+  // ─── Operational metadata ───
+  generationTimeMs    Int?
+  tokensUsed          Int?    @default(0)
+  errorMessage        String?
+
+  // ─── Sharing ───
+  shareToken    String?   @unique
+  isPublic      Boolean   @default(false)
+  sharedAt      DateTime?
+
+  deletedAt     DateTime?   // Soft delete
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  comparisonsAsA Comparison[] @relation("ReportA")
+  comparisonsAsB Comparison[] @relation("ReportB")
+  chatMessages   ChatMessage[]
+
+  @@index([userId])
+  @@index([ideaId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId, status])
+  @@index([deletedAt])
+  @@index([shareToken])
+  @@index([reportType])
+}
+
+model Comparison {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  reportAId String
+  reportA   Report   @relation("ReportA", fields: [reportAId], references: [id], onDelete: Cascade)
+  reportBId String
+  reportB   Report   @relation("ReportB", fields: [reportBId], references: [id], onDelete: Cascade)
+
+  winner    String?  // reportAId or reportBId
+  analysis  Json?    // Structured AI comparison output
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([reportAId])
+  @@index([reportBId])
+  @@index([createdAt])
+}
+
+model Payment {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  razorpayOrderId   String   @unique
+  razorpayPaymentId String?
+  amount            Int      // Amount in paise (INR)
+  currency          String   @default("INR")
+  plan              Plan     // The plan this payment is for
+  status            String   @default("created") // created, captured, failed, refunded
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([razorpayOrderId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Subscription {
+  id              String           @id @default(cuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  plan            SubscriptionPlan
+  razorpaySubId   String?          @unique
+  amount          Int              // Amount in paise (INR)
+  currency        String           @default("INR")
+  isActive        Boolean          @default(true)
+
+  startsAt        DateTime         @default(now())
+  expiresAt       DateTime
+  cancelledAt     DateTime?
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([razorpaySubId])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  reportId  String
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  role      String   // "user" | "assistant"
+  content   String   @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
+  @@index([createdAt])
+}
+
+model UsageLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  action    String   // e.g. "report.generate", "idea.create", "payment.success"
+  metadata  Json?    // Arbitrary context (reportId, agentName, duration, etc.)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([userId, action])
+}

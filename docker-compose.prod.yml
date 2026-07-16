@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  web:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/ventureforge-web:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - /etc/ventureforge/.env
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  api:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/ventureforge-api:latest
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - /etc/ventureforge/.env
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  workers:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/ventureforge-api:latest
+    command: ["node", "dist/main.js", "--worker"] # Example worker command
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - /etc/ventureforge/.env
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    networks:
+      - internal_network
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/html:/var/www/html:ro
+    networks:
+      - internal_network
+    depends_on:
+      - web
+      - api
+
+networks:
+  internal_network:
+    driver: bridge
