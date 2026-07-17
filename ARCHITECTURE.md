@@ -12,7 +12,7 @@ VentureForge AI operates as a multi-agent AI orchestration platform. It is struc
 - **Frontend**: Next.js 14, React 18, Tailwind CSS, Shadcn UI, Framer Motion, React Query.
 - **Backend**: NestJS 10, Prisma ORM, BullMQ, Redis, JWT Authentication.
 - **AI Integration**: Google Gemini 2.5 Flash API.
-- **Infrastructure**: Docker, AWS (EC2, RDS PostgreSQL, ElastiCache Redis, S3).
+- **Infrastructure**: Docker, Vercel.
 
 ---
 
@@ -30,7 +30,7 @@ We use Turborepo for ultra-fast, cached builds across workspace boundaries.
 │   ├── db/             # Prisma schema, migrations, and generated client
 │   ├── types/          # Shared TypeScript interfaces across boundaries
 │   └── ui/             # Shared Tailwind UI component library (Shadcn)
-└── infrastructure/     # Terraform IaC and Docker configuration
+└── scripts/            # Deployment and utility scripts
 ```
 
 ---

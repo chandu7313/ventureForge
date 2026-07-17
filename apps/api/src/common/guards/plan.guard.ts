@@ -26,7 +26,8 @@ export class PlanGuard implements CanActivate {
       throw new HttpException('Pro plan required', HttpStatus.PAYMENT_REQUIRED);
     }
 
-    if (user.plan === 'FREE' && user.reportsUsed >= user.reportsLimit && user.reportsLimit !== -1) {
+    const FREE_TIER_REPORT_LIMIT = 3;
+    if (user.plan === 'FREE' && user.reportsThisMonth >= FREE_TIER_REPORT_LIMIT) {
       throw new HttpException('Free tier limit reached. Please upgrade to Pro.', HttpStatus.TOO_MANY_REQUESTS);
     }
 

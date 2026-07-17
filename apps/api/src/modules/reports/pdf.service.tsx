@@ -1,7 +1,5 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import React from 'react';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
@@ -186,25 +184,8 @@ const ReportDocument = ({ report, idea }: { report: any, idea: any }) => (
 @Injectable()
 export class PdfService {
   private readonly logger = new Logger(PdfService.name);
-  private s3Client: S3Client | null = null;
-  private bucketName: string;
 
-  constructor(private configService: ConfigService) {
-    const region = this.configService.get<string>('AWS_S3_REGION') || 'ap-south-1';
-    this.bucketName = this.configService.get<string>('AWS_S3_BUCKET') || 'ventureforge-reports';
-    
-    const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID');
-    const secretAccessKey = this.configService.get<string>('AWS_SECRET_ACCESS_KEY');
-
-    if (accessKeyId && secretAccessKey) {
-      this.s3Client = new S3Client({
-        region,
-        credentials: { accessKeyId, secretAccessKey },
-      });
-    } else {
-      this.logger.warn('AWS S3 credentials not found. PDF generation will fall back to local mock URLs.');
-    }
-  }
+  constructor(private configService: ConfigService) {}
 
   async generatePDF(report: Report, idea: Idea): Promise<string> {
     this.logger.log(`Generating PDF for report ${report.id}`);
@@ -212,31 +193,12 @@ export class PdfService {
     try {
       const pdfBuffer = await renderToBuffer(<ReportDocument report={report} idea={idea} />);
 
-      if (!this.s3Client) {
-        this.logger.warn('No S3 client configured. Returning fake presigned URL.');
-        // In development without S3, you might want to save to disk or return a dummy.
-        return `https://mock-s3.example.com/${this.bucketName}/reports/${report.id}.pdf?expires=3600`;
-      }
+      // Return as a base64 data URL that the frontend can use directly
+      const base64 = pdfBuffer.toString('base64');
+      const dataUrl = `data:application/pdf;base64,${base64}`;
 
-      const key = `reports/${report.id}.pdf`;
-      
-      const uploadCommand = new PutObjectCommand({
-        Bucket: this.bucketName,
-        Key: key,
-        Body: pdfBuffer,
-        ContentType: 'application/pdf',
-      });
-
-      await this.s3Client.send(uploadCommand);
-      this.logger.log(`PDF uploaded to S3: ${key}`);
-
-      const getCommand = new GetObjectCommand({
-        Bucket: this.bucketName,
-        Key: key,
-      });
-
-      const presignedUrl = await getSignedUrl(this.s3Client, getCommand, { expiresIn: 3600 });
-      return presignedUrl;
+      this.logger.log(`PDF generated for report ${report.id} (${pdfBuffer.length} bytes)`);
+      return dataUrl;
 
     } catch (err) {
       this.logger.error(`Failed to generate PDF: ${(err as Error).message}`);

@@ -54,7 +54,7 @@ Where most tools stop at simple idea validation, VentureForge AI goes all the wa
 | **Database**       | PostgreSQL, Prisma ORM             | Relational data modeling           |
 | **Caching/Queues** | Redis, BullMQ                      | Asynchronous AI job processing     |
 | **AI Models**      | Google Gemini 2.5 Flash            | Core intelligence engine           |
-| **Infra**          | Docker, Nginx, Terraform           | Containerized, scalable deployment |
+| **Infra**          | Docker, Vercel                     | Containerized, scalable deployment |
 | **Monitoring**     | Prometheus, Grafana                | System observability               |
 
 ## Architecture

@@ -38,15 +38,6 @@ export default () => ({
       premium: parseInt(process.env.RAZORPAY_PREMIUM_PRICE_PAISE || '149900', 10),
     },
   },
-  aws: {
-    region: process.env.AWS_REGION || 'ap-south-1',
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    s3: {
-      reportsBucket: process.env.S3_BUCKET_NAME,
-      presignedUrlExpires: parseInt(process.env.S3_PRESIGNED_URL_EXPIRES || '3600', 10),
-    },
-  },
   monitoring: {
     prometheusPort: parseInt(process.env.PROMETHEUS_PORT || '9090', 10),
     lokiUrl: process.env.LOKI_URL,

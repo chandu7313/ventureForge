@@ -30,11 +30,6 @@ export const validationSchema = Joi.object({
   RAZORPAY_PRO_PRICE_PAISE: Joi.number().default(49900),
   RAZORPAY_PREMIUM_PRICE_PAISE: Joi.number().default(149900),
 
-  AWS_REGION: Joi.string().default('ap-south-1'),
-  AWS_ACCESS_KEY_ID: Joi.string().optional(),
-  AWS_SECRET_ACCESS_KEY: Joi.string().optional(),
-  S3_BUCKET_NAME: Joi.string().optional(),
-  S3_PRESIGNED_URL_EXPIRES: Joi.number().default(3600),
 
   PROMETHEUS_PORT: Joi.number().default(9090),
   LOKI_URL: Joi.string().uri().optional(),
