@@ -122,6 +122,9 @@ importers:
       razorpay:
         specifier: ^2.9.4
         version: 2.9.6
+      react:
+        specifier: 18.3.1
+        version: 18.3.1
       redis:
         specifier: ^4.6.14
         version: 4.7.1
@@ -156,9 +159,6 @@ importers:
       '@ventureforge/config':
         specifier: workspace:*
         version: link:../../packages/config
-      react:
-        specifier: 18.3.1
-        version: 18.3.1
       typescript:
         specifier: 5.3.3
         version: 5.3.3
