@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ["@ventureforge/ui", "@ventureforge/types"],
   images: {
     domains: ["img.clerk.com", "startup-validator-assets.s3.amazonaws.com"],
   },
