@@ -1,6 +1,5 @@
 {
-  "buildCommand": "pnpm turbo build --filter=@ventureforge/web...",
-  "installCommand": "pnpm install",
-  "framework": "nextjs",
-  "outputDirectory": "apps/web/.next"
+  "buildCommand": "cd ../.. && pnpm turbo build --filter=@ventureforge/web...",
+  "installCommand": "cd ../.. && pnpm install",
+  "framework": "nextjs"
 }
