@@ -111,7 +111,9 @@ export class OperationsAgent {
 
     const response = await this.gemini.generateStructuredJson(prompt, OperationsOutputSchema, {
       maxTokens: 8192,
-      temperature: 0.5,
+      temperature: 0.6,
+      reportId: input.reportId,
+      serviceName: 'Operations Blueprint',
     });
 
     this.logger.log(`[OperationsAgent] SUCCESS. Generated ${response.data.sops.length} SOPs. Duration: ${response.durationMs}ms`);

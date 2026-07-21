@@ -9,6 +9,7 @@ import { ReactFlowData } from './generators/diagram-generator.service';
 
 // --------- Market Agent (Layer 1) ---------
 export interface MarketAgentInput {
+  reportId: string;
   language?: string;
   ideaDescription: string;
   industry: string;
@@ -32,6 +33,7 @@ export interface MarketAgentOutput {
 
 // --------- Competitor Agent (Layer 1) ---------
 export interface CompetitorAgentInput {
+  reportId: string;
   language?: string;
   geography: string;
   ideaDescription: string;
@@ -67,6 +69,7 @@ export interface CompetitorAgentOutput {
 
 // --------- Product Agent (Layer 1 + Layer 2) ---------
 export interface ProductAgentInput {
+  reportId: string;
   language?: string;
   geography: string;
   ideaDescription: string;
@@ -116,6 +119,7 @@ export interface ProductAgentOutput {
 
 // --------- VC Agent (Layer 1 + Layer 2) ---------
 export interface VcAgentInput {
+  reportId: string;
   language?: string;
   geography: string;
   ideaDescription: string;
@@ -155,6 +159,7 @@ export interface VcAgentOutput {
 
 // --------- Business Formation Agent (Layer 2) ---------
 export interface BusinessFormationAgentInput {
+  reportId: string;
   language?: string;
   ideaDescription: string;
   industry: string;
@@ -199,6 +204,7 @@ export interface BusinessFormationAgentOutput {
 
 // --------- Compliance Agent (Layer 2) ---------
 export interface ComplianceAgentInput {
+  reportId: string;
   language?: string;
   ideaDescription: string;
   industry: string;
@@ -237,6 +243,7 @@ export interface ComplianceAgentOutput {
 
 // --------- Financial Agent (Layer 2) ---------
 export interface FinancialAgentInput {
+  reportId: string;
   language?: string;
   ideaDescription: string;
   industry: string;
@@ -308,6 +315,7 @@ export interface FinancialAssumptionsFromLLM {
 
 // --------- Operations Agent (Layer 2) ---------
 export interface OperationsAgentInput {
+  reportId: string;
   language?: string;
   ideaDescription: string;
   industry: string;

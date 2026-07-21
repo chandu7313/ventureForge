@@ -52,22 +52,7 @@ export class AiOrchestrator {
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
-  private async withRetry<T>(fn: () => Promise<T>, agentName: string, maxRetries = 2): Promise<T> {
-    let lastError: Error;
-    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
-      try {
-        return await fn();
-      } catch (err) {
-        lastError = err as Error;
-        const delay = Math.pow(2, attempt) * 500;
-        this.logger.warn(`[${agentName}] Attempt ${attempt} failed. Retrying in ${delay}ms... Error: ${lastError.message}`);
-        if (attempt <= maxRetries) {
-          await new Promise((res) => setTimeout(res, delay));
-        }
-      }
-    }
-    throw new Error(`[${agentName}] All ${maxRetries + 1} attempts failed. Last error: ${lastError!.message}`);
-  }
+  // Retry logic removed: ResilientAiProvider now handles retries and fallback routing natively.
 
   async generateFastOverview(input: OrchestratorInput): Promise<any> {
     const schema = z.object({
@@ -88,28 +73,30 @@ Target Geography: ${input.geography || input.country}
 
 Provide a quick verdict, scores (0-100), and a 1-paragraph summary.`;
 
-    const response = await this.geminiFlash.generateStructuredJson(prompt, schema);
+    const response = await this.geminiFlash.generateStructuredJson(prompt, schema, { 
+      reportId: input.reportId, 
+      serviceName: 'Fast Overview' 
+    });
     return response;
   }
 
   async generateSection(input: OrchestratorInput, section: string): Promise<any> {
     switch (section) {
       case 'market':
-        return await this.withRetry(() => this.marketAgent.run(input), 'MarketAgent');
+        return await this.marketAgent.run(input);
       case 'competitors':
-        return await this.withRetry(() => this.competitorAgent.run(input), 'CompetitorAgent');
+        return await this.competitorAgent.run(input);
       case 'formation':
-        return await this.withRetry(() => this.businessFormationAgent.run(input), 'BusinessFormationAgent');
+        return await this.businessFormationAgent.run(input);
       case 'compliance':
-        return await this.withRetry(() => this.complianceAgent.run(input), 'ComplianceAgent');
+        return await this.complianceAgent.run(input);
       case 'team':
-        return await this.withRetry(() => this.operationsAgent.run(input), 'OperationsAgent'); // Operations handles team as well
       case 'operations':
-        return await this.withRetry(() => this.operationsAgent.run(input), 'OperationsAgent');
+        return await this.operationsAgent.run(input);
       case 'financial':
-        return await this.withRetry(() => this.financialAgent.run(input), 'FinancialAgent');
+        return await this.financialAgent.run(input);
       case 'product':
-        return await this.withRetry(() => this.productAgent.run(input), 'ProductAgent');
+        return await this.productAgent.run(input);
       default:
         throw new Error(`Unknown section: ${section}`);
     }
@@ -138,39 +125,38 @@ Provide a quick verdict, scores (0-100), and a 1-paragraph summary.`;
       financialResult,
       operationsResult,
     ] = await Promise.allSettled([
-      this.withRetry(() => this.marketAgent.run(input), 'MarketAgent')
+      this.marketAgent.run(input)
         .then(res => { this.reportGateway.emitProgress(input.reportId, 'market_analysis', 14, { message: '📊 Market analysis complete.', data: res }); return res; }),
-      this.withRetry(() => this.competitorAgent.run(input), 'CompetitorAgent')
+      this.competitorAgent.run(input)
         .then(res => { this.reportGateway.emitProgress(input.reportId, 'competitor_scout', 28, { message: '🔍 Competitor intelligence gathered.', data: res }); return res; }),
-      this.withRetry(() => this.productAgent.run(input), 'ProductAgent')
+      this.productAgent.run(input)
         .then(res => { this.reportGateway.emitProgress(input.reportId, 'product_strategy', 42, { message: '🚀 Product strategy & GTM plan generated.', data: res }); return res; }),
-      this.withRetry(() => this.businessFormationAgent.run(input), 'BusinessFormationAgent')
+      this.businessFormationAgent.run(input)
         .then(res => { this.reportGateway.emitProgress(input.reportId, 'business_formation', 56, { message: '🏛️ Legal structure & BMC created.', data: res }); return res; }),
-      this.withRetry(() => this.complianceAgent.run(input), 'ComplianceAgent')
+      this.complianceAgent.run(input)
         .then(res => { this.reportGateway.emitProgress(input.reportId, 'compliance', 70, { message: '📋 Tax & compliance checklist ready.', data: res }); return res; }),
-      this.withRetry(() => this.financialAgent.run(input), 'FinancialAgent')
+      this.financialAgent.run(input)
         .then(res => { this.reportGateway.emitProgress(input.reportId, 'financial', 84, { message: '💰 Financial projections & unit economics computed.', data: res }); return res; }),
-      this.withRetry(() => this.operationsAgent.run(input), 'OperationsAgent')
+      this.operationsAgent.run(input)
         .then(res => { this.reportGateway.emitProgress(input.reportId, 'operations', 90, { message: '⚙️ Operations blueprint & SOPs built.', data: res }); return res; }),
     ]);
 
-    // Error handling & fallback defaults omitted for brevity in this rewritten version,
-    // assuming they succeed or we bubble up the error to BullMQ for retry.
-    if (marketResult.status === 'rejected') throw marketResult.reason;
-    if (competitorResult.status === 'rejected') throw competitorResult.reason;
-    if (productResult.status === 'rejected') throw productResult.reason;
-    if (businessFormationResult.status === 'rejected') throw businessFormationResult.reason;
-    if (complianceResult.status === 'rejected') throw complianceResult.reason;
-    if (financialResult.status === 'rejected') throw financialResult.reason;
-    if (operationsResult.status === 'rejected') throw operationsResult.reason;
+    // Handle partial failures gracefully instead of throwing
+    const extractResult = (result: PromiseSettledResult<any>, name: string, fallback: any) => {
+      if (result.status === 'rejected') {
+        this.logger.error(`[Orchestrator] ${name} failed completely. Using fallback defaults. Error: ${result.reason}`);
+        return fallback;
+      }
+      return result.value;
+    };
 
-    const marketOutput = marketResult.value;
-    const competitorOutput = competitorResult.value;
-    const productOutput = productResult.value;
-    const businessFormationOutput = businessFormationResult.value;
-    const complianceOutput = complianceResult.value;
-    const financialOutput = financialResult.value;
-    const operationsOutput = operationsResult.value;
+    const marketOutput = extractResult(marketResult, 'MarketAgent', { tam: { value: 0, currency: '$' }, sam: { value: 0, currency: '$' }, som: { value: 0, currency: '$' }, analysis: 'Analysis unavailable' });
+    const competitorOutput = extractResult(competitorResult, 'CompetitorAgent', { competitors: [] });
+    const productOutput = extractResult(productResult, 'ProductAgent', { mvp: { features: [] }, risks: [] });
+    const businessFormationOutput = extractResult(businessFormationResult, 'BusinessFormationAgent', { recommendedStructure: 'TBD' });
+    const complianceOutput = extractResult(complianceResult, 'ComplianceAgent', { registrations: [] });
+    const financialOutput = extractResult(financialResult, 'FinancialAgent', { assumptions: { avgPricePerUnit: 100, unitCost: 40, customerAcquisitionCost: 10, fixedCostsPerMonth: 1000, initialInvestment: 10000, maxCapacityPerMonth: 1000 } });
+    const operationsOutput = extractResult(operationsResult, 'OperationsAgent', { suppliers: [], teamPlan: [], launchChecklist: [] });
 
     // --- Stage 2: Synthesis, Charts, Diagrams & Final Scoring ---
     this.logger.log(`[Orchestrator] Stage 1 complete. Running Synthesis, Visualizations & AI Scoring...`);
@@ -181,7 +167,15 @@ Provide a quick verdict, scores (0-100), and a 1-paragraph summary.`;
     // Run Stage 2 tasks in parallel
     const [vcOutput, diagrams, charts, synthesisResult] = await Promise.all([
       // 1. VC Agent
-      this.withRetry(() => this.vcAgent.run(vcInput), 'VcAgent'),
+      this.vcAgent.run(vcInput).catch(() => ({ 
+        investorScore: 0, 
+        dimensions: [], 
+        pitch: [{ title: 'Unavailable', content: 'Unavailable', dataPoints: [] }], 
+        verdict: 'Pass', 
+        monetization: 'Unavailable', 
+        fundingRecommendation: 'Unavailable',
+        investorMatch: { vcFunds: [], angelInvestors: [], fundingProbabilityScore: 0 }
+      }) as VcAgentOutput),
       
       // 2. Diagrams
       this.generateDiagrams(input, marketOutput, operationsOutput, complianceOutput, productOutput),
@@ -218,7 +212,7 @@ Provide a quick verdict, scores (0-100), and a 1-paragraph summary.`;
     return result;
   }
 
-  private async generateDiagrams(
+  public async generateDiagrams(
     input: OrchestratorInput,
     market: MarketAgentOutput,
     ops: OperationsAgentOutput,
@@ -251,7 +245,7 @@ Provide a quick verdict, scores (0-100), and a 1-paragraph summary.`;
     };
   }
 
-  private async generateCharts(
+  public async generateCharts(
     input: OrchestratorInput,
     fin: FinancialAgentOutput,
     market: MarketAgentOutput,
@@ -276,7 +270,7 @@ Provide a quick verdict, scores (0-100), and a 1-paragraph summary.`;
     };
   }
 
-  private async generateSynthesis(
+  public async generateSynthesis(
     input: OrchestratorInput,
     market: MarketAgentOutput,
     fin: FinancialAgentOutput,
@@ -305,7 +299,10 @@ Market TAM: ${market.tam.currency}${market.tam.value}
 Competitors: ${comp.competitors.length}
 Risks: ${prod.risks.map(r => r.description).join(', ')}`;
 
-    const response = await this.geminiPro.generateStructuredJson(prompt, schema);
+    const response = await this.geminiPro.generateStructuredJson(prompt, schema, {
+      reportId: input.reportId,
+      serviceName: 'Final Synthesis',
+    });
     return response.data;
   }
 }

@@ -4,7 +4,9 @@ import * as React from "react";
 import Link from "next/link";
 import { useReportSocket } from "@/hooks/useReportSocket";
 import { apiClient } from "@/lib/api-client";
-import { ReportProgressBar } from "@/components/features/ReportProgressBar";
+import { ProgressTracker } from "@/components/report/ProgressTracker";
+import { SectionSkeleton } from "@/components/report/SectionSkeleton";
+import { getTabGroups } from "@/lib/section-registry-client";
 import { DownloadReportBtn } from "@/components/features/DownloadReportBtn";
 import { ShareReportBtn } from "@/components/features/ShareReportBtn";
 import { NameGeneratorWidget } from "@/components/features/NameGeneratorWidget";
@@ -31,6 +33,22 @@ const businessDNATabs = [
   { id: "launch", label: "Launch Checklist", icon: "rocket_launch" },
 ];
 
+
+const ProgressiveSection = ({ sectionId, status, data, onRetry, type = 'text', sectionName = 'Section' }: any) => {
+  if (data) return null; // handled by main render
+  if (status === 'failed') return (
+    <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-rose-200 rounded-xl bg-rose-50/50 text-center">
+      <span className="material-symbols-outlined text-4xl text-rose-500 mb-4" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
+      <h3 className="font-headline text-lg font-bold text-on-surface mb-2">Failed to Generate {sectionName}</h3>
+      <p className="font-body text-sm text-on-surface-variant max-w-md mx-auto mb-6">There was an issue generating this section. Please try again.</p>
+      <button onClick={() => onRetry(sectionId)} className="bg-rose-600 hover:bg-rose-500 text-white font-bold py-2.5 px-6 rounded-lg transition-all flex items-center gap-2">
+        <span className="material-symbols-outlined">refresh</span> Retry
+      </button>
+    </div>
+  );
+  return <SectionSkeleton type={type} />;
+};
+
 const GenerateSectionBtn = ({ section, sectionName, onGenerate, isGenerating }: any) => (
   <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-outline-variant/30 rounded-xl bg-surface-container-low/30 text-center">
     <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4" style={{ fontVariationSettings: "'FILL' 0" }}>bolt</span>
@@ -55,15 +73,14 @@ export default function ReportPage({ params }: { params: { id: string } }) {
   const [activeTab, setActiveTab] = React.useState("overview");
   const [isPending, startTransition] = React.useTransition();
   const [generatingSection, setGeneratingSection] = React.useState<string | null>(null);
-  const { status, percent, stage, message, position, estimatedWait, error } = useReportSocket(params.id);
+  const { socket, overallStatus, sections, completedCount, totalCount, message } = useReportSocket(params.id);
 
   const generateSection = async (section: string) => {
     setGeneratingSection(section);
     try {
-      const data = await apiClient(`/api/v1/reports/${params.id}/generate/${section}`, {
+      await apiClient(`/api/v1/reports/${params.id}/retry/${section}`, {
         method: "POST"
       });
-      setReport(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -83,46 +100,33 @@ export default function ReportPage({ params }: { params: { id: string } }) {
       }
     }
     loadReport();
-  }, [params.id, percent]);
+  }, [params.id]);
 
-  const isFinished = status === 'DONE' || report?.status === "DONE";
-  
-  if (loading || (!isFinished && status !== 'DISCONNECTED')) {
-    return (
-      <ReportProgressBar 
-        status={status}
-        percent={percent}
-        stage={stage}
-        message={message}
-        position={position}
-        estimatedWait={estimatedWait}
-        error={error}
-      />
-    );
-  }
+  // Removed early return for ReportProgressBar so the page renders immediately
 
   const ideaName = report?.idea?.name || "Startup Idea";
   const industry = report?.idea?.industry || "Tech";
   const ideaStage = report?.idea?.stage || "Idea";
 
-  // Extract data from report
-  const marketData = report?.marketData;
-  const competitorData = report?.competitorData;
-  const businessFormationData = report?.businessFormationData;
-  const complianceData = report?.complianceData;
-  const financialData = report?.financialData;
-  const operationsData = report?.sopData || report?.operationsData;
-  const teamData = report?.teamData;
-  const technologyData = report?.technologyData;
-  const fundingData = report?.fundingData;
-  const gtmData = report?.gtmData;
-  const pitchData = report?.pitchDeckData || report?.pitchData;
-  const launchData = report?.launchChecklistData;
-  const infrastructureData = report?.infrastructureData;
+  // Extract data from progressive sections or fallback to monolithic report (for older reports)
+  const marketData = sections['market_analysis']?.data || report?.marketData;
+  const competitorData = sections['competitors']?.data || report?.competitorData;
+  const businessFormationData = sections['formation']?.data || report?.businessFormationData;
+  const complianceData = sections['compliance']?.data || report?.complianceData;
+  const financialData = sections['financial']?.data || report?.financialData;
+  const operationsData = sections['operations']?.data || report?.sopData || report?.operationsData;
+  const teamData = sections['team_structure']?.data || report?.teamData;
+  const technologyData = sections['technology_stack']?.data || report?.technologyData;
+  const fundingData = sections['funding']?.data || report?.fundingData;
+  const gtmData = sections['gtm']?.data || report?.gtmData;
+  const pitchData = sections['vc_synthesis']?.data || report?.pitchDeckData || report?.pitchData;
+  const launchData = sections['launch_checklist']?.data || report?.launchChecklistData;
+  const infrastructureData = sections['infrastructure']?.data || report?.infrastructureData;
+  const productData = sections['product']?.data || report?.productServiceData;
   
   // Visualizations
-  const diagramData = report?.diagramData;
-  const chartData = report?.chartData;
+  const diagramData = sections['diagrams']?.data || report?.diagramData;
+  const chartData = sections['charts']?.data || report?.chartData;
 
   const scores = [
     { label: "Market Potential", score: report?.marketScore || 0, color: "text-emerald-500" },
@@ -183,6 +187,16 @@ export default function ReportPage({ params }: { params: { id: string } }) {
             <DownloadReportBtn reportId={params.id} />
           </div>
         </header>
+
+        <ProgressTracker 
+          sections={sections}
+          completedCount={completedCount}
+          totalCount={totalCount}
+          overallStatus={overallStatus}
+          onRetry={async (secId) => {
+            await apiClient(`/api/v1/reports/${params.id}/retry/${secId}`, { method: 'POST' });
+          }}
+        />
 
         <div className="px-10 py-8 max-w-7xl mx-auto space-y-8">
           {/* ── AI Startup Score™ ─────────────────────────────── */}
@@ -306,7 +320,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                       </div>
                     )}
                   </>
-                ) : <GenerateSectionBtn section="market" sectionName="Market Analysis" onGenerate={generateSection} isGenerating={generatingSection === 'market'} />}
+                ) : <ProgressiveSection sectionId="market_analysis" sectionName="Market Analysis" status={sections['market_analysis']?.status || (overallStatus === 'DONE' ? 'failed' : 'pending')} data={marketData} onRetry={generateSection} type="cards" />}
               </div>
             )}
 
@@ -331,7 +345,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                       </div>
                     ))}
                   </div>
-                ) : <GenerateSectionBtn section="competitors" sectionName="Competitor Intelligence" onGenerate={generateSection} isGenerating={generatingSection === 'competitors'} />}
+                ) : <ProgressiveSection sectionId="competitors" sectionName="Competitor Intelligence" status={sections['competitors']?.status || (overallStatus === 'DONE' ? 'failed' : 'pending')} data={competitorData} onRetry={generateSection} type="cards" />}
               </div>
             )}
 
@@ -366,7 +380,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                       </div>
                     ))}
                   </>
-                ) : <GenerateSectionBtn section="formation" sectionName="Business Formation" onGenerate={generateSection} isGenerating={generatingSection === 'formation'} />}
+                ) : <ProgressiveSection sectionId="formation" sectionName="Business Formation" status={sections['formation']?.status || (overallStatus === 'DONE' ? 'failed' : 'pending')} data={businessFormationData} onRetry={generateSection} type="text" />}
               </div>
             )}
 
@@ -415,7 +429,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                       </div>
                     )}
                   </>
-                ) : <GenerateSectionBtn section="compliance" sectionName="Compliance & Tax" onGenerate={generateSection} isGenerating={generatingSection === 'compliance'} />}
+                ) : <ProgressiveSection sectionId="compliance" sectionName="Compliance & Tax" status={sections['compliance']?.status || (overallStatus === 'DONE' ? 'failed' : 'pending')} data={complianceData} onRetry={generateSection} type="table" />}
               </div>
             )}
 
@@ -502,7 +516,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                       </div>
                     </div>
                   </>
-                ) : <GenerateSectionBtn section="financial" sectionName="Financial Projections" onGenerate={generateSection} isGenerating={generatingSection === 'financial'} />}
+                ) : <ProgressiveSection sectionId="financial" sectionName="Financial Projections" status={sections['financial']?.status || (overallStatus === 'DONE' ? 'failed' : 'pending')} data={financialData} onRetry={generateSection} type="cards" />}
               </div>
             )}
 
@@ -550,7 +564,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                       </details>
                     ))}
                   </div>
-                ) : <GenerateSectionBtn section="operations" sectionName="Operations & SOPs" onGenerate={generateSection} isGenerating={generatingSection === 'operations'} />}
+                ) : <ProgressiveSection sectionId="operations" sectionName="Operations & SOPs" status={sections['operations']?.status || (overallStatus === 'DONE' ? 'failed' : 'pending')} data={operationsData} onRetry={generateSection} type="text" />}
               </div>
             )}
 
@@ -581,7 +595,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                       </div>
                     ))}
                   </div>
-                ) : <GenerateSectionBtn section="operations" sectionName="Launch Checklist" onGenerate={generateSection} isGenerating={generatingSection === 'operations'} />}
+                ) : <ProgressiveSection sectionId="launch_checklist" sectionName="Launch Checklist" status={sections['launch_checklist']?.status || (overallStatus === 'DONE' ? 'failed' : 'pending')} data={launchData} onRetry={generateSection} type="table" />}
               </div>
             )}
 

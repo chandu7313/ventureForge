@@ -56,7 +56,9 @@ export class FinancialAgent {
     // Step 1: Gemini generates ONLY the assumptions
     const response = await this.gemini.generateStructuredJson(prompt, AssumptionsSchema, {
       maxTokens: 4096,
-      temperature: 0.5,
+      temperature: 0.2,
+      reportId: input.reportId,
+      serviceName: 'Financial Analysis',
     });
 
     const assumptions = response.data;

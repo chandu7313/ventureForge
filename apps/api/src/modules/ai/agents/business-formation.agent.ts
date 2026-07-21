@@ -97,7 +97,9 @@ export class BusinessFormationAgent {
 
     const response = await this.gemini.generateStructuredJson(prompt, FormationOutputSchema, {
       maxTokens: 8192,
-      temperature: 0.6,
+      temperature: 0.5,
+      reportId: input.reportId,
+      serviceName: 'Business Formation',
     });
 
     this.logger.log(`[BusinessFormationAgent] Recommended structure: ${response.data.recommendedStructure}`);

@@ -10,6 +10,8 @@ import { GenerateReportDto } from './reports.controller';
 
 import { UsersService } from '../users/users.service';
 import { AiOrchestrator } from '../ai/ai.orchestrator';
+import { ReportProducer } from './report.producer';
+import { TOTAL_GENERATABLE } from '../ai/section-registry';
 
 @Injectable()
 export class ReportsService {
@@ -22,6 +24,7 @@ export class ReportsService {
     private readonly dedup: IdeaDedupService,
     private readonly usersService: UsersService,
     private readonly aiOrchestrator: AiOrchestrator,
+    private readonly reportProducer: ReportProducer,
   ) {}
 
   // ─────────────────────────────────────────────────
@@ -32,7 +35,7 @@ export class ReportsService {
     userId: string,
     dto: GenerateReportDto,
     ideaHash: string,
-  ): Promise<{ report: any; jobId: null }> {
+  ): Promise<{ report: any; enqueuedCount: number }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
 
@@ -57,57 +60,25 @@ export class ReportsService {
         ideaId: idea.id,
         userId: user.id,
         status: ReportStatus.PROCESSING,
+        totalSections: TOTAL_GENERATABLE,
+        completedSections: 0,
       },
     });
 
-    try {
-      const startTime = Date.now();
-      const overview = await this.aiOrchestrator.generateFastOverview({
-        reportId: report.id,
-        ideaDescription: idea.problem,
-        industry: idea.industry,
-        geography: idea.geography,
-        country: idea.country,
-        businessType: idea.businessType || 'Service',
-        stage: idea.stage,
-        teamSize: idea.teamSize,
-        budget: idea.budget,
-      });
-
-      await this.prisma.report.update({
-        where: { id: report.id },
-        data: {
-          status: ReportStatus.DONE,
-          verdict: overview.verdict,
-          ideaScore: overview.ideaScore,
-          marketScore: overview.marketScore,
-          riskScore: overview.riskScore,
-          investorScore: overview.investorScore,
-          revenueScore: overview.revenueScore,
-          overallScore: overview.overallScore,
-          aiRecommendations: [
-            {
-              category: 'Overview',
-              priority: 'High',
-              recommendation: overview.summary,
-              impact: 'High',
-              effort: 'Low',
-              timeframe: 'Immediate'
-            }
-          ],
-          generationTimeMs: Date.now() - startTime,
-        },
-      });
-      report.status = ReportStatus.DONE;
-    } catch (error) {
-      this.logger.error(`Failed to generate fast overview: ${error.message}`);
-      // Fallback
-      await this.prisma.report.update({
-        where: { id: report.id },
-        data: { status: ReportStatus.FAILED, errorMessage: error.message }
-      });
-      report.status = ReportStatus.FAILED;
-    }
+    // Enqueue all sections via FlowProducer
+    const enqueuedCount = await this.reportProducer.addSectionJobs({
+      reportId: report.id,
+      ideaId: idea.id,
+      ideaDescription: idea.problem,
+      industry: idea.industry,
+      geography: idea.geography || 'PAN_INDIA',
+      country: idea.country || 'India',
+      businessType: idea.businessType || 'Service',
+      stage: idea.stage,
+      teamSize: idea.teamSize,
+      budget: idea.budget,
+      language: dto.language || 'en',
+    });
 
     // Deduct 100 credits
     await this.usersService.deductCredits(userId, 100);
@@ -117,14 +88,14 @@ export class ReportsService {
       data: {
         userId: user.id,
         action: 'report.generate',
-        metadata: { reportId: report.id, ideaId: idea.id, ideaHash },
+        metadata: { reportId: report.id, ideaId: idea.id, ideaHash, progressive: true },
       },
     });
 
     // Invalidate user report count cache
     await this.redis.del(CacheKeys.userReportCount(user.id));
 
-    return { report, jobId: null };
+    return { report, enqueuedCount };
   }
 
   // ─────────────────────────────────────────────────
@@ -154,48 +125,100 @@ export class ReportsService {
   }
 
   // ─────────────────────────────────────────────────
-  // Generate Section On-Demand
+  // Get all completed sections (for instant page restore)
   // ─────────────────────────────────────────────────
-  async generateSection(userId: string, reportId: string, section: string) {
+  async getAllSections(reportId: string) {
+    const report = await this.prisma.report.findUnique({
+      where: { id: reportId },
+      select: { completedSections: true, totalSections: true, failedSectionIds: true, status: true },
+    });
+    if (!report) throw new NotFoundException('Report not found');
+
+    const { GENERATABLE_SECTIONS } = await import('../ai/section-registry');
+    const sectionsData: Record<string, any> = {};
+    
+    // Fetch all cached sections in parallel
+    await Promise.all(
+      GENERATABLE_SECTIONS.map(async (sec) => {
+        const data = await this.redis.get(CacheKeys.section(reportId, sec.sectionId));
+        if (data) {
+          sectionsData[sec.sectionId] = data;
+        }
+      })
+    );
+
+    return {
+      status: report.status,
+      completedCount: report.completedSections,
+      totalCount: report.totalSections,
+      failedSections: report.failedSectionIds,
+      sections: sectionsData,
+    };
+  }
+
+  // ─────────────────────────────────────────────────
+  // Cancel pending generation
+  // ─────────────────────────────────────────────────
+  async cancelGeneration(userId: string, reportId: string) {
+    const report = await this.prisma.report.findFirst({
+      where: { id: reportId, userId, deletedAt: null },
+    });
+    if (!report) throw new NotFoundException('Report not found');
+    if (report.status !== ReportStatus.PROCESSING) {
+      throw new HttpException('Report is not currently processing', HttpStatus.BAD_REQUEST);
+    }
+
+    // Cancel BullMQ jobs
+    await this.reportProducer.cancelSectionJobs(reportId);
+
+    // Update DB
+    await this.prisma.report.update({
+      where: { id: reportId },
+      data: {
+        status: ReportStatus.FAILED,
+        errorMessage: 'Cancelled by user',
+        cancelledAt: new Date(),
+      },
+    });
+
+    return { message: 'Generation cancelled successfully' };
+  }
+
+  // ─────────────────────────────────────────────────
+  // Retry single section
+  // ─────────────────────────────────────────────────
+  async retrySection(userId: string, reportId: string, sectionId: string) {
     const report = await this.prisma.report.findFirst({
       where: { id: reportId, userId, deletedAt: null },
       include: { idea: true },
     });
     if (!report) throw new NotFoundException('Report not found');
 
+    // Remove from failed lists in DB
+    await this.prisma.report.update({
+      where: { id: reportId },
+      data: {
+        failedSectionIds: { set: report.failedSectionIds.filter(id => id !== sectionId) },
+        status: ReportStatus.PROCESSING, // Ensure it's active again
+      },
+    });
+
     const input = {
       reportId: report.id,
+      ideaId: report.ideaId,
       ideaDescription: report.idea.problem,
       industry: report.idea.industry,
       geography: report.idea.geography,
-      country: report.idea.country,
+      country: report.idea.country || 'India',
       businessType: report.idea.businessType || 'Service',
       stage: report.idea.stage,
       teamSize: report.idea.teamSize,
       budget: report.idea.budget,
+      language: 'en',
     };
 
-    const data = await this.aiOrchestrator.generateSection(input, section);
-
-    const updateData: any = {};
-    if (section === 'market') updateData.marketData = data;
-    if (section === 'competitors') updateData.competitorData = data;
-    if (section === 'formation') updateData.businessFormationData = data;
-    if (section === 'compliance') updateData.complianceData = data;
-    if (section === 'team') updateData.teamData = data;
-    if (section === 'operations') updateData.sopData = data;
-    if (section === 'financial') updateData.financialData = data;
-    if (section === 'product') updateData.productServiceData = data;
-
-    const updated = await this.prisma.report.update({
-      where: { id: report.id },
-      data: updateData,
-    });
-
-    // Invalidate cache
-    await this.redis.del(CacheKeys.report(reportId));
-
-    return updated;
+    const jobId = await this.reportProducer.retrySectionJob(input, sectionId);
+    return { message: 'Section retry queued', jobId };
   }
 
   // ─────────────────────────────────────────────────

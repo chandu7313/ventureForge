@@ -87,7 +87,9 @@ export class ProductAgent {
 
     const response = await this.gemini.generateStructuredJson(prompt, ProductOutputSchema, {
       maxTokens: 8192,
-      temperature: 0.6,
+      temperature: 0.7,
+      reportId: input.reportId,
+      serviceName: 'Product Strategy',
     });
 
     this.logger.log(

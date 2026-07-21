@@ -6,6 +6,7 @@ import {
   AiProviderResponse,
   ChatMessage,
 } from './ai-provider.interface';
+import { ErrorNormalizer } from '../errors/error-normalizer';
 
 /**
  * GeminiProvider — Centralized Google Gemini client for VentureForge AI.
@@ -41,7 +42,7 @@ export class GeminiProvider implements AiProvider {
   async generateStructuredJson<T>(
     prompt: string,
     schema: z.ZodSchema<T>,
-    options?: { maxTokens?: number; temperature?: number },
+    options?: { maxTokens?: number; temperature?: number; timeoutMs?: number; signal?: AbortSignal },
   ): Promise<AiProviderResponse<T>> {
     const startTime = Date.now();
     const maxAttempts = 3;
@@ -55,6 +56,17 @@ export class GeminiProvider implements AiProvider {
             : prompt;
 
         const model = this.client.getGenerativeModel({ model: this.model });
+        
+        let timeoutId: NodeJS.Timeout | undefined;
+        let signal = options?.signal;
+        
+        if (options?.timeoutMs) {
+          const controller = new AbortController();
+          if (signal) signal.addEventListener('abort', () => controller.abort());
+          signal = controller.signal;
+          timeoutId = setTimeout(() => controller.abort(new Error('Timeout')), options.timeoutMs);
+        }
+
         const response = await model.generateContent({
           contents: [{ role: 'user', parts: [{ text: currentPrompt }] }],
           generationConfig: {
@@ -62,7 +74,9 @@ export class GeminiProvider implements AiProvider {
             maxOutputTokens: options?.maxTokens || 8192,
             temperature: options?.temperature ?? 0.7,
           },
-        });
+        }, { signal });
+        
+        if (timeoutId) clearTimeout(timeoutId);
 
         const rawText = response.response.text() || '';
 
@@ -88,20 +102,25 @@ export class GeminiProvider implements AiProvider {
         return { data: validated, usage, model: this.model, durationMs };
       } catch (err) {
         lastError = err as Error;
+        const normalized = ErrorNormalizer.normalize(err, 'Gemini', 'Structured JSON');
+        
+        // Throw immediately for hard auth/quota errors so orchestrator can fallback
+        if (normalized.errorType === 'INVALID_KEY' || normalized.errorType === 'CREDIT_EXHAUSTED') {
+           throw normalized;
+        }
+
         this.logger.warn(
-          `[GeminiProvider] JSON generation attempt ${attempt}/${maxAttempts} failed: ${lastError.message}`,
+          `[GeminiProvider] JSON generation attempt ${attempt}/${maxAttempts} failed: ${normalized.message}`,
         );
 
         if (attempt < maxAttempts) {
-          const delay = Math.pow(2, attempt) * 500;
+          const delay = (normalized.retryAfter * 1000) || (Math.pow(2, attempt) * 500);
           await new Promise((res) => setTimeout(res, delay));
         }
       }
     }
 
-    throw new Error(
-      `[GeminiProvider] All ${maxAttempts} JSON generation attempts failed. Last error: ${lastError?.message}`,
-    );
+    throw ErrorNormalizer.normalize(lastError, 'Gemini', 'Structured JSON');
   }
 
   /**
@@ -109,19 +128,32 @@ export class GeminiProvider implements AiProvider {
    */
   async generateText(
     prompt: string,
-    options?: { maxTokens?: number; temperature?: number },
+    options?: { maxTokens?: number; temperature?: number; timeoutMs?: number; signal?: AbortSignal },
   ): Promise<AiProviderResponse<string>> {
     const startTime = Date.now();
 
     try {
       const model = this.client.getGenerativeModel({ model: this.model });
+      
+      let timeoutId: NodeJS.Timeout | undefined;
+      let signal = options?.signal;
+      
+      if (options?.timeoutMs) {
+        const controller = new AbortController();
+        if (signal) signal.addEventListener('abort', () => controller.abort());
+        signal = controller.signal;
+        timeoutId = setTimeout(() => controller.abort(new Error('Timeout')), options.timeoutMs);
+      }
+
       const response = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
           maxOutputTokens: options?.maxTokens || 4096,
           temperature: options?.temperature ?? 0.7,
         },
-      });
+      }, { signal });
+      
+      if (timeoutId) clearTimeout(timeoutId);
 
       const text = response.response.text() || '';
       const durationMs = Date.now() - startTime;
@@ -137,8 +169,7 @@ export class GeminiProvider implements AiProvider {
 
       return { data: text, usage, model: this.model, durationMs };
     } catch (err) {
-      this.logger.error(`[GeminiProvider] Text generation failed: ${(err as Error).message}`);
-      throw err;
+      throw ErrorNormalizer.normalize(err, 'Gemini', 'Text Generation');
     }
   }
 
@@ -147,7 +178,7 @@ export class GeminiProvider implements AiProvider {
    */
   async chat(
     messages: ChatMessage[],
-    options?: { maxTokens?: number; temperature?: number },
+    options?: { maxTokens?: number; temperature?: number; timeoutMs?: number; signal?: AbortSignal },
   ): Promise<AiProviderResponse<string>> {
     const startTime = Date.now();
 
@@ -181,7 +212,18 @@ export class GeminiProvider implements AiProvider {
         history: history.length > 0 ? history : undefined,
       });
 
-      const response = await chat.sendMessage(lastMessage?.parts?.[0]?.text || '');
+      let timeoutId: NodeJS.Timeout | undefined;
+      let signal = options?.signal;
+      
+      if (options?.timeoutMs) {
+        const controller = new AbortController();
+        if (signal) signal.addEventListener('abort', () => controller.abort());
+        signal = controller.signal;
+        timeoutId = setTimeout(() => controller.abort(new Error('Timeout')), options.timeoutMs);
+      }
+
+      const response = await chat.sendMessage(lastMessage?.parts?.[0]?.text || '', { signal });
+      if (timeoutId) clearTimeout(timeoutId);
 
       const text = response.response.text() || '';
       const durationMs = Date.now() - startTime;
@@ -193,8 +235,7 @@ export class GeminiProvider implements AiProvider {
 
       return { data: text, usage, model: this.model, durationMs };
     } catch (err) {
-      this.logger.error(`[GeminiProvider] Chat failed: ${(err as Error).message}`);
-      throw err;
+      throw ErrorNormalizer.normalize(err, 'Gemini', 'Chat');
     }
   }
 }

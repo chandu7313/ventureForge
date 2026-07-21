@@ -87,6 +87,9 @@ export const CacheKeys = {
   userReportCount: (userId: string) => `user:${userId}:report-count`,
   ideaDedup: (hash: string) => `idea:${hash}:report`,
   userPlan: (userId: string) => `user:${userId}:plan`,
+  // Progressive report generation keys
+  section: (reportId: string, sectionId: string) => `section:${reportId}:${sectionId}`,
+  reportProgress: (reportId: string) => `report:${reportId}:progress`,
 };
 
 /** Cache TTLs in seconds */
@@ -95,4 +98,6 @@ export const CacheTTL = {
   COMPARE: 60 * 60,           // 1 hour
   IDEA_DEDUP: 60 * 60 * 24 * 7, // 7 days
   USER_PLAN: 60 * 60,         // 1 hour
+  SECTION: 60 * 60 * 24,      // 24 hours (per-section cache)
+  PROGRESS: 60 * 60 * 2,      // 2 hours (generation progress state)
 };

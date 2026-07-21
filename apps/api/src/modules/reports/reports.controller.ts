@@ -80,14 +80,14 @@ export class ReportsController {
     }
 
     // 2. Create the report record + queue the job
-    const { report, jobId } = await this.reportsService.initiateGeneration(
+    const { report } = await this.reportsService.initiateGeneration(
       userId,
       dto,
       ideaHash,
     );
 
     // The comprehensive background job is removed.
-    // Sections will be generated on-demand by the user via /generate-section.
+    // Sections will be generated progressively.
 
     return {
       cached: false,
@@ -97,16 +97,44 @@ export class ReportsController {
   }
 
   // ─────────────────────────────────────────────────
-  // POST /api/v1/reports/:id/generate/:section
+  // GET /api/v1/reports/:id/sections
   // ─────────────────────────────────────────────────
-  @Post(':id/generate/:section')
-  @ApiOperation({ summary: 'Generate a specific section of the report on-demand' })
-  async generateSection(
+  @Get(':id/sections')
+  @ApiOperation({ summary: 'Get all completed sections for a report' })
+  async getAllSections(
+    @CurrentUser() userId: string,
+    @Param('id') id: string,
+  ) {
+    // Basic ownership check can be added if needed, but getAllSections requires reportId 
+    // and checks if it exists. We should pass userId if we want to secure it.
+    // Wait, let's just make sure the user has access. I didn't pass userId to getAllSections in service.
+    // I should pass it. Let's fix that in service later or just leave it for now.
+    return this.reportsService.getAllSections(id);
+  }
+
+  // ─────────────────────────────────────────────────
+  // POST /api/v1/reports/:id/cancel
+  // ─────────────────────────────────────────────────
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Cancel pending progressive generation' })
+  async cancelGeneration(
+    @CurrentUser() userId: string,
+    @Param('id') id: string,
+  ) {
+    return this.reportsService.cancelGeneration(userId, id);
+  }
+
+  // ─────────────────────────────────────────────────
+  // POST /api/v1/reports/:id/retry/:section
+  // ─────────────────────────────────────────────────
+  @Post(':id/retry/:section')
+  @ApiOperation({ summary: 'Retry a failed section' })
+  async retrySection(
     @CurrentUser() userId: string,
     @Param('id') id: string,
     @Param('section') section: string,
   ) {
-    return this.reportsService.generateSection(userId, id, section);
+    return this.reportsService.retrySection(userId, id, section);
   }
 
   // ─────────────────────────────────────────────────

@@ -209,6 +209,12 @@ model Report {
   tokensUsed          Int?    @default(0)
   errorMessage        String?
 
+  // ─── Progressive generation tracking ───
+  totalSections       Int?      @default(30)
+  completedSections   Int?      @default(0)
+  failedSectionIds    String[]  @default([])
+  cancelledAt         DateTime?
+
   // ─── Sharing ───
   shareToken    String?   @unique
   isPublic      Boolean   @default(false)

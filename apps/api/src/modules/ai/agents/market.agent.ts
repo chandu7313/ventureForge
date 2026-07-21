@@ -74,6 +74,8 @@ export class MarketAgent {
     const response = await this.gemini.generateStructuredJson(prompt, MarketOutputSchema, {
       maxTokens: 8192,
       temperature: 0.6,
+      reportId: input.reportId,
+      serviceName: 'Market Analysis',
     });
 
     this.logger.log(

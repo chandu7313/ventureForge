@@ -71,8 +71,10 @@ export class CompetitorAgent {
 
     // Step 3: Gemini structured generation
     const response = await this.gemini.generateStructuredJson(prompt, CompetitorOutputSchema, {
-      maxTokens: 6144,
-      temperature: 0.5,
+      maxTokens: 8192,
+      temperature: 0.6,
+      reportId: input.reportId,
+      serviceName: 'Competitor Intel',
     });
 
     this.logger.log(

@@ -36,7 +36,7 @@ export interface AiProvider {
   generateStructuredJson<T>(
     prompt: string,
     schema: z.ZodSchema<T>,
-    options?: { maxTokens?: number; temperature?: number },
+    options?: { maxTokens?: number; temperature?: number; timeoutMs?: number; signal?: AbortSignal; serviceName?: string; reportId?: string },
   ): Promise<AiProviderResponse<T>>;
 
   /**
@@ -44,7 +44,7 @@ export interface AiProvider {
    */
   generateText(
     prompt: string,
-    options?: { maxTokens?: number; temperature?: number },
+    options?: { maxTokens?: number; temperature?: number; timeoutMs?: number; signal?: AbortSignal; serviceName?: string; reportId?: string },
   ): Promise<AiProviderResponse<string>>;
 
   /**
@@ -52,7 +52,7 @@ export interface AiProvider {
    */
   chat(
     messages: ChatMessage[],
-    options?: { maxTokens?: number; temperature?: number },
+    options?: { maxTokens?: number; temperature?: number; timeoutMs?: number; signal?: AbortSignal; serviceName?: string; reportId?: string },
   ): Promise<AiProviderResponse<string>>;
 }
 

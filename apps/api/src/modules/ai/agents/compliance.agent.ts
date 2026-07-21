@@ -64,8 +64,10 @@ export class ComplianceAgent {
     const prompt = getCompliancePrompt(input, searchContext);
 
     const response = await this.gemini.generateStructuredJson(prompt, ComplianceOutputSchema, {
-      maxTokens: 6144,
-      temperature: 0.4, // Lower temp for factual accuracy
+      maxTokens: 8192,
+      temperature: 0.4,
+      reportId: input.reportId,
+      serviceName: 'Compliance Checklist',
     });
 
     this.logger.log(`[ComplianceAgent] Generated ${response.data.registrations.length} registrations. Duration: ${response.durationMs}ms`);

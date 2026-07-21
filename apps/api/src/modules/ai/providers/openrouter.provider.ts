@@ -7,42 +7,24 @@ import {
 } from './ai-provider.interface';
 import { ErrorNormalizer } from '../errors/error-normalizer';
 
-/**
- * GroqProvider — OpenAI-compatible provider for Groq-hosted models.
- *
- * Supports DeepSeek, Qwen, Llama, and other models available on Groq's
- * ultra-fast inference platform. Uses the OpenAI-compatible chat/completions
- * endpoint with JSON mode for structured output.
- *
- * Features:
- * - Configurable model via constructor injection
- * - Structured JSON mode with Zod validation
- * - Automatic retry with exponential backoff
- * - Token usage tracking
- * - Automatic fallback model support
- */
 @Injectable()
-export class GroqProvider implements AiProvider {
-  private readonly logger = new Logger(GroqProvider.name);
+export class OpenRouterProvider implements AiProvider {
+  private readonly logger = new Logger(OpenRouterProvider.name);
   private readonly apiKey: string;
   private readonly model: string;
-  private readonly baseUrl = 'https://api.groq.com/openai/v1';
+  private readonly baseUrl = 'https://openrouter.ai/api/v1';
 
   constructor(apiKey: string, model: string) {
     this.apiKey = apiKey;
     this.model = model;
 
     if (!this.apiKey) {
-      throw new Error('GROQ_API_KEY is not configured');
+      throw new Error('OPENROUTER_API_KEY is not configured');
     }
 
-    this.logger.log(`[GroqProvider] Initialized with model: ${this.model}`);
+    this.logger.log(`[OpenRouterProvider] Initialized with model: ${this.model}`);
   }
 
-  /**
-   * Generate a structured JSON response validated against a Zod schema.
-   * Uses Groq's OpenAI-compatible JSON mode.
-   */
   async generateStructuredJson<T>(
     prompt: string,
     schema: z.ZodSchema<T>,
@@ -56,7 +38,7 @@ export class GroqProvider implements AiProvider {
       try {
         const currentPrompt =
           attempt > 1
-            ? `${prompt}\n\nIMPORTANT: Your previous response was invalid JSON or did not match the required schema. Return ONLY the raw JSON object. No markdown fences, no explanation text, no thinking process. Strictly follow the requested structure.`
+            ? `${prompt}\n\nIMPORTANT: Your previous response was invalid JSON. Return ONLY the raw JSON object. No markdown fences.`
             : prompt;
 
         const fetchOptions: RequestInit = {
@@ -64,19 +46,21 @@ export class GroqProvider implements AiProvider {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${this.apiKey}`,
+            'HTTP-Referer': process.env.APP_URL || 'http://localhost:3000', // OpenRouter requirement
+            'X-Title': 'VentureForge AI',
           },
           body: JSON.stringify({
             model: this.model,
             messages: [
               {
                 role: 'system',
-                content: 'You are a precise JSON generator. Return ONLY valid JSON objects. No markdown fences, no explanation text, no thinking process. Only output the JSON object.',
+                content: 'You are a precise JSON generator. Return ONLY valid JSON objects. No markdown fences, no explanation text.',
               },
               { role: 'user', content: currentPrompt },
             ],
+            response_format: { type: 'json_object' },
             max_tokens: options?.maxTokens || 8192,
             temperature: options?.temperature ?? 0.7,
-            response_format: { type: 'json_object' },
           }),
         };
 
@@ -85,12 +69,8 @@ export class GroqProvider implements AiProvider {
           const controller = new AbortController();
           fetchOptions.signal = controller.signal;
 
-          if (options?.signal) {
-            options.signal.addEventListener('abort', () => controller.abort());
-          }
-          if (options?.timeoutMs) {
-            timeoutId = setTimeout(() => controller.abort(new Error('Timeout')), options.timeoutMs);
-          }
+          if (options?.signal) options.signal.addEventListener('abort', () => controller.abort());
+          if (options?.timeoutMs) timeoutId = setTimeout(() => controller.abort(new Error('Timeout')), options.timeoutMs);
         }
 
         const response = await fetch(`${this.baseUrl}/chat/completions`, fetchOptions);
@@ -98,19 +78,13 @@ export class GroqProvider implements AiProvider {
 
         if (!response.ok) {
           const errorText = await response.text();
-          throw Object.assign(new Error(`Groq API error (${response.status}): ${errorText}`), { status: response.status });
+          throw Object.assign(new Error(`OpenRouter API error (${response.status}): ${errorText}`), { status: response.status });
         }
 
         const data = await response.json();
         const rawText = data.choices?.[0]?.message?.content || '';
 
-        // Parse JSON — handle potential markdown fences from reasoning models
-        let jsonStr = rawText;
-
-        // Strip thinking tags that DeepSeek/Qwen reasoning models sometimes emit
-        jsonStr = jsonStr.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-
-        // Handle markdown code fences
+        let jsonStr = rawText.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
         const jsonMatch = jsonStr.match(/```json\n?([\s\S]*?)\n?```/) || jsonStr.match(/\{[\s\S]*\}/);
         jsonStr = jsonMatch?.[1] || jsonMatch?.[0] || jsonStr;
 
@@ -125,22 +99,21 @@ export class GroqProvider implements AiProvider {
         };
 
         this.logger.debug(
-          `[GroqProvider] JSON generation SUCCESS (attempt ${attempt}/${maxAttempts}). ` +
+          `[OpenRouterProvider] JSON SUCCESS (attempt ${attempt}/${maxAttempts}). ` +
             `Model: ${this.model}. Duration: ${durationMs}ms. Tokens: ${usage.totalTokens}`,
         );
 
         return { data: validated, usage, model: this.model, durationMs };
       } catch (err) {
         lastError = err as Error;
-        const normalized = ErrorNormalizer.normalize(err, 'Groq', 'Structured JSON');
+        const normalized = ErrorNormalizer.normalize(err, 'OpenRouter', 'Structured JSON');
         
-        // If it's a hard fail (e.g. invalid key, quota), throw immediately so orchestrator can fallback
         if (normalized.errorType === 'INVALID_KEY' || normalized.errorType === 'CREDIT_EXHAUSTED') {
            throw normalized;
         }
 
         this.logger.warn(
-          `[GroqProvider] JSON generation attempt ${attempt}/${maxAttempts} failed: ${normalized.message}`,
+          `[OpenRouterProvider] JSON attempt ${attempt}/${maxAttempts} failed: ${normalized.message}`,
         );
 
         if (attempt < maxAttempts) {
@@ -150,24 +123,22 @@ export class GroqProvider implements AiProvider {
       }
     }
 
-    throw ErrorNormalizer.normalize(lastError, 'Groq', 'Structured JSON');
+    throw ErrorNormalizer.normalize(lastError, 'OpenRouter', 'Structured JSON');
   }
 
-  /**
-   * Generate free-form text (summaries, explanations, narratives).
-   */
   async generateText(
     prompt: string,
     options?: { maxTokens?: number; temperature?: number; timeoutMs?: number; signal?: AbortSignal },
   ): Promise<AiProviderResponse<string>> {
     const startTime = Date.now();
-
     try {
       const fetchOptions: RequestInit = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`,
+          'HTTP-Referer': process.env.APP_URL || 'http://localhost:3000',
+          'X-Title': 'VentureForge AI',
         },
         body: JSON.stringify({
           model: this.model,
@@ -190,13 +161,11 @@ export class GroqProvider implements AiProvider {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw Object.assign(new Error(`Groq API error (${response.status}): ${errorText}`), { status: response.status });
+        throw Object.assign(new Error(`OpenRouter API error (${response.status}): ${errorText}`), { status: response.status });
       }
 
       const data = await response.json();
       let text = data.choices?.[0]?.message?.content || '';
-
-      // Strip thinking tags from reasoning models
       text = text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 
       const durationMs = Date.now() - startTime;
@@ -206,40 +175,29 @@ export class GroqProvider implements AiProvider {
         totalTokens: data.usage?.total_tokens || 0,
       };
 
-      this.logger.debug(
-        `[GroqProvider] Text generation SUCCESS. Model: ${this.model}. Duration: ${durationMs}ms. Tokens: ${usage.totalTokens}`,
-      );
-
       return { data: text, usage, model: this.model, durationMs };
     } catch (err) {
-      throw ErrorNormalizer.normalize(err, 'Groq', 'Text Generation');
+      throw ErrorNormalizer.normalize(err, 'OpenRouter', 'Text Generation');
     }
   }
 
-  /**
-   * Multi-turn chat conversation.
-   */
   async chat(
     messages: ChatMessage[],
     options?: { maxTokens?: number; temperature?: number; timeoutMs?: number; signal?: AbortSignal },
   ): Promise<AiProviderResponse<string>> {
     const startTime = Date.now();
-
     try {
-      const groqMessages = messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-
       const fetchOptions: RequestInit = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`,
+          'HTTP-Referer': process.env.APP_URL || 'http://localhost:3000',
+          'X-Title': 'VentureForge AI',
         },
         body: JSON.stringify({
           model: this.model,
-          messages: groqMessages,
+          messages: messages.map(m => ({ role: m.role, content: m.content })),
           max_tokens: options?.maxTokens || 4096,
           temperature: options?.temperature ?? 0.7,
         }),
@@ -258,13 +216,11 @@ export class GroqProvider implements AiProvider {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw Object.assign(new Error(`Groq API error (${response.status}): ${errorText}`), { status: response.status });
+        throw Object.assign(new Error(`OpenRouter API error (${response.status}): ${errorText}`), { status: response.status });
       }
 
       const data = await response.json();
       let text = data.choices?.[0]?.message?.content || '';
-
-      // Strip thinking tags from reasoning models
       text = text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 
       const durationMs = Date.now() - startTime;
@@ -276,7 +232,7 @@ export class GroqProvider implements AiProvider {
 
       return { data: text, usage, model: this.model, durationMs };
     } catch (err) {
-      throw ErrorNormalizer.normalize(err, 'Groq', 'Chat');
+      throw ErrorNormalizer.normalize(err, 'OpenRouter', 'Chat');
     }
   }
 }

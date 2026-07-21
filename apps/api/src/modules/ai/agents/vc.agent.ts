@@ -68,7 +68,9 @@ export class VcAgent {
 
     const response = await this.gemini.generateStructuredJson(prompt, VcOutputSchema, {
       maxTokens: 8192,
-      temperature: 0.4, // Lower temperature for more analytical synthesis
+      temperature: 0.4,
+      reportId: input.reportId,
+      serviceName: 'VC Review',
     });
 
     this.logger.log(
