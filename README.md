@@ -53,7 +53,7 @@ Where most tools stop at simple idea validation, VentureForge AI goes all the wa
 | **Backend**        | NestJS                             | Robust, modular API architecture   |
 | **Database**       | PostgreSQL, Prisma ORM             | Relational data modeling           |
 | **Caching/Queues** | Redis, BullMQ                      | Asynchronous AI job processing     |
-| **AI Models**      | Google Gemini 2.5 Flash            | Core intelligence engine           |
+| **AI Models**      | Gemini 2.5 Pro/Flash, Groq (DeepSeek/Qwen) | Task-based multi-LLM routing       |
 | **Infra**          | Docker, Vercel                     | Containerized, scalable deployment |
 | **Monitoring**     | Prometheus, Grafana                | System observability               |
 
@@ -103,8 +103,12 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed diagrams and workflow docu
    ```env
    DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ventureforge?schema=public"
    REDIS_URL="redis://localhost:6379"
-   GEMINI_API_KEY="your-gemini-key"
    NEXT_PUBLIC_API_URL="http://localhost:3001/api/v1"
+   
+   # AI Keys
+   GEMINI_API_KEY="your-gemini-key"
+   GROQ_API_KEY="your-groq-key"
+   TAVILY_API_KEY="your-tavily-key"
    ```
 
 4. **Start local infrastructure (Postgres & Redis)**
