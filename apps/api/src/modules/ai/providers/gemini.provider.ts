@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'zod';
 import {
@@ -26,13 +25,12 @@ export class GeminiProvider implements AiProvider {
   private readonly client: GoogleGenerativeAI;
   private readonly model: string;
 
-  constructor(private readonly config: ConfigService) {
-    const apiKey = this.config.get<string>('GEMINI_API_KEY');
+  constructor(apiKey: string, model: string) {
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY is not configured');
     }
     this.client = new GoogleGenerativeAI(apiKey);
-    this.model = this.config.get<string>('GEMINI_MODEL') || 'gemini-2.5-flash';
+    this.model = model;
     this.logger.log(`[GeminiProvider] Initialized with model: ${this.model}`);
   }
 
