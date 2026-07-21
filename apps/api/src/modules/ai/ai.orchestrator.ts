@@ -12,7 +12,8 @@ import { OperationsAgent } from './agents/operations.agent';
 import { ReportGateway } from '../reports/report.gateway';
 import { DiagramGeneratorService } from './generators/diagram-generator.service';
 import { FinancialCalculatorService } from './calculators/financial-calculator.service';
-import { GeminiProvider } from './providers/gemini.provider';
+import { AiProvider } from './providers/ai-provider.interface';
+import { GEMINI_FLASH, GEMINI_PRO } from './ai.module';
 import { getCountryCurrency } from './prompts/country-context';
 import { z } from 'zod';
 import {
@@ -45,7 +46,8 @@ export class AiOrchestrator {
     private readonly operationsAgent: OperationsAgent,
     private readonly diagramGenerator: DiagramGeneratorService,
     private readonly calculator: FinancialCalculatorService,
-    private readonly gemini: GeminiProvider,
+    @Inject(GEMINI_FLASH) private readonly geminiFlash: AiProvider,
+    @Inject(GEMINI_PRO) private readonly geminiPro: AiProvider,
     @Inject(forwardRef(() => ReportGateway)) private readonly reportGateway: ReportGateway,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
@@ -86,7 +88,7 @@ Target Geography: ${input.geography || input.country}
 
 Provide a quick verdict, scores (0-100), and a 1-paragraph summary.`;
 
-    const response = await this.gemini.generateStructuredJson(prompt, schema);
+    const response = await this.geminiFlash.generateStructuredJson(prompt, schema);
     return response;
   }
 
@@ -303,7 +305,7 @@ Market TAM: ${market.tam.currency}${market.tam.value}
 Competitors: ${comp.competitors.length}
 Risks: ${prod.risks.map(r => r.description).join(', ')}`;
 
-    const response = await this.gemini.generateStructuredJson(prompt, schema);
+    const response = await this.geminiPro.generateStructuredJson(prompt, schema);
     return response.data;
   }
 }

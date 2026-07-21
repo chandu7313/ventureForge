@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { GeminiProvider } from '../providers/gemini.provider';
+import { Injectable, Inject, Logger } from '@nestjs/common';
+import { AiProvider } from '../providers/ai-provider.interface';
+import { GEMINI_FLASH } from '../ai.module';
 import { z } from 'zod';
 
 /**
@@ -43,7 +44,7 @@ export interface ReactFlowData {
 export class DiagramGeneratorService {
   private readonly logger = new Logger(DiagramGeneratorService.name);
 
-  constructor(private readonly gemini: GeminiProvider) {}
+  constructor(@Inject(GEMINI_FLASH) private readonly gemini: AiProvider) {}
 
   // ─── Mermaid Diagrams (Deterministic) ────────────────────────
 

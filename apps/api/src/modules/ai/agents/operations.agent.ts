@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import { OperationsAgentInput, OperationsAgentOutput } from '../ai.types';
-import { GeminiProvider } from '../providers/gemini.provider';
+import { AiProvider } from '../providers/ai-provider.interface';
 import { getOperationsPrompt } from '../prompts/operations.prompt';
+import { GROQ_QWEN } from '../ai.module';
 
 const SOPItemSchema = z.object({
   category: z.string(),
@@ -101,7 +102,7 @@ const OperationsOutputSchema = z.object({
 export class OperationsAgent {
   private readonly logger = new Logger(OperationsAgent.name);
 
-  constructor(private readonly gemini: GeminiProvider) {}
+  constructor(@Inject(GROQ_QWEN) private readonly gemini: AiProvider) {}
 
   async run(input: OperationsAgentInput): Promise<OperationsAgentOutput> {
     this.logger.log(`[OperationsAgent] Generating operations plan for: ${input.industry}`);

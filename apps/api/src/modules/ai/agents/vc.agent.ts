@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import { VcAgentInput, VcAgentOutput } from '../ai.types';
-import { GeminiProvider } from '../providers/gemini.provider';
+import { AiProvider } from '../providers/ai-provider.interface';
 import { buildVcPrompt } from '../prompts/vc.prompt';
+import { GEMINI_PRO } from '../ai.module';
 
 const InvestorDimensionSchema = z.object({
   name: z.string(),
@@ -58,7 +59,7 @@ const VcOutputSchema = z.object({
 export class VcAgent {
   private readonly logger = new Logger(VcAgent.name);
 
-  constructor(private readonly gemini: GeminiProvider) {}
+  constructor(@Inject(GEMINI_PRO) private readonly gemini: AiProvider) {}
 
   async run(input: VcAgentInput): Promise<VcAgentOutput> {
     this.logger.log(`[VcAgent] Evaluating investment potential...`);

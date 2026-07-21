@@ -1,9 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import { CompetitorAgentInput, CompetitorAgentOutput } from '../ai.types';
-import { GeminiProvider } from '../providers/gemini.provider';
+import { AiProvider } from '../providers/ai-provider.interface';
 import { TavilyProvider } from '../providers/tavily.provider';
 import { buildCompetitorPrompt } from '../prompts/competitor.prompt';
+import { GEMINI_PRO } from '../ai.module';
 
 const CompetitorSchema = z.object({
   name: z.string(),
@@ -47,7 +48,7 @@ export class CompetitorAgent {
   private readonly logger = new Logger(CompetitorAgent.name);
 
   constructor(
-    private readonly gemini: GeminiProvider,
+    @Inject(GEMINI_PRO) private readonly gemini: AiProvider,
     private readonly tavily: TavilyProvider,
   ) {}
 

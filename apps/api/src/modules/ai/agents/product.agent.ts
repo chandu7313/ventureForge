@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import { ProductAgentInput, ProductAgentOutput } from '../ai.types';
-import { GeminiProvider } from '../providers/gemini.provider';
+import { AiProvider } from '../providers/ai-provider.interface';
 import { buildProductPrompt } from '../prompts/product.prompt';
+import { GEMINI_PRO } from '../ai.module';
 
 const ProductOutputSchema = z.object({
   mvp: z.array(z.object({
@@ -77,7 +78,7 @@ const ProductOutputSchema = z.object({
 export class ProductAgent {
   private readonly logger = new Logger(ProductAgent.name);
 
-  constructor(private readonly gemini: GeminiProvider) {}
+  constructor(@Inject(GEMINI_PRO) private readonly gemini: AiProvider) {}
 
   async run(input: ProductAgentInput): Promise<ProductAgentOutput> {
     this.logger.log(`[ProductAgent] Building product strategy for stage: ${input.stage}`);

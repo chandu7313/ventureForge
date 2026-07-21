@@ -1,9 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import { MarketAgentInput, MarketAgentOutput } from '../ai.types';
-import { GeminiProvider } from '../providers/gemini.provider';
+import { AiProvider } from '../providers/ai-provider.interface';
 import { TavilyProvider } from '../providers/tavily.provider';
 import { buildMarketPrompt } from '../prompts/market.prompt';
+import { GEMINI_PRO } from '../ai.module';
 
 const MarketOutputSchema = z.object({
   tam: z.object({ value: z.number(), currency: z.string(), cagr: z.number() }),
@@ -46,7 +47,7 @@ export class MarketAgent {
   private readonly logger = new Logger(MarketAgent.name);
 
   constructor(
-    private readonly gemini: GeminiProvider,
+    @Inject(GEMINI_PRO) private readonly gemini: AiProvider,
     private readonly tavily: TavilyProvider,
   ) {}
 

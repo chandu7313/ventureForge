@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import { FinancialAgentInput, FinancialAgentOutput, FinancialAssumptionsFromLLM } from '../ai.types';
-import { GeminiProvider } from '../providers/gemini.provider';
+import { AiProvider } from '../providers/ai-provider.interface';
 import { FinancialCalculatorService } from '../calculators/financial-calculator.service';
 import { getFinancialPrompt } from '../prompts/financial.prompt';
 import { getCountryCurrency } from '../prompts/country-context';
+import { GROQ_DEEPSEEK } from '../ai.module';
 
 const AssumptionsSchema = z.object({
   initialMonthlyRevenue: z.number(),
@@ -42,7 +43,7 @@ export class FinancialAgent {
   private readonly logger = new Logger(FinancialAgent.name);
 
   constructor(
-    private readonly gemini: GeminiProvider,
+    @Inject(GROQ_DEEPSEEK) private readonly gemini: AiProvider,
     private readonly calculator: FinancialCalculatorService,
   ) {}
 
